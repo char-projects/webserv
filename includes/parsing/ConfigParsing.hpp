@@ -2,7 +2,7 @@
 #define CONFIG_PARSING_HPP
 
 #include <vector>
-#include <string>
+#include <fstream>
 
 class ConfigParsing {
     private:
@@ -12,8 +12,9 @@ class ConfigParsing {
         ConfigParsing();
         ConfigParsing(const ConfigParsing &other);
         ConfigParsing &operator=(const ConfigParsing &other);
-
         ~ConfigParsing();
+
+        bool isFileReadable(const std::string &filePath);
 };
 
 #endif
