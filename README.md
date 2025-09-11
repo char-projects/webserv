@@ -78,8 +78,9 @@
 > - https://datatracker.ietf.org/doc/html/rfc1867
 >> ⚡ Example: Nonblocking I/O and select()
 > - https://www.ibm.com/docs/en/i/7.2.0?topic=designs-example-nonblocking-io-select
->> ⚡ epoll - I/O event notification facility
-> - https://man7.org/linux/man-pages/man7/epoll.7.html
+> - https://csresources.github.io/SystemProgrammingWiki/SystemProgramming/Networking,-Part-7:-Nonblocking-I-O,-select(),-and-epoll/
+> - https://en.wikipedia.org/wiki/Select_(Unix)
+> - https://man7.org/linux/man-pages/man2/select.2.html
 >> ⚡ HTML
 > - https://es.wikipedia.org/wiki/Protocolo_de_transferencia_de_hipertexto
 >> ⚡ Códigos de estado
