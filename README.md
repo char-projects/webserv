@@ -71,8 +71,9 @@
 > - https://datatracker.ietf.org/doc/html/rfc1945
 >> ⚡ RFC 7231 - HTTP/1.1 Semantics
 > - https://datatracker.ietf.org/doc/html/rfc7231
->> ⚡ RFC 3875 - Common Gateway Interface
+>> ⚡ RFC 3875 - Common Gateway Interface CGI
 > - https://datatracker.ietf.org/doc/html/rfc3875
+> - https://en.wikipedia.org/wiki/Common_Gateway_Interface
 >> ⚡ RFC 1867 - Form-based File Upload
 > - https://datatracker.ietf.org/doc/html/rfc1867
 >> ⚡ Example: Nonblocking I/O and select()
@@ -83,7 +84,8 @@
 > - https://es.wikipedia.org/wiki/Protocolo_de_transferencia_de_hipertexto
 >> ⚡ Códigos de estado
 > - https://es.wikipedia.org/wiki/Anexo:C%C3%B3digos_de_estado_HTTP
->> ⚡ CGI
-> - https://en.wikipedia.org/wiki/Common_Gateway_Interface
 >> ⚡ Para testear el protocolo
 > - https://blog.baens.net/posts/http-with-telnet/
+>> ⚡ Nginx Configuration File Structure and Configuration Contexts
+> - https://www.digitalocean.com/community/tutorials/understanding-the-nginx-configuration-file-structure-and-configuration-contexts
+> - https://dev.to/takahiro_82jp/what-types-of-nginx-configuration-files-exist-3o72
