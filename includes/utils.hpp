@@ -10,7 +10,7 @@
 # include <sstream>
 
 # define LOG_FILE	3
-# define LOG_NAME	"logger.log"
+# define LOG_NAME	"/home/csubires/.cd42/42_webserv/src/logger.log"
 
 enum e_message {
     ERROR,

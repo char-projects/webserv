@@ -1,6 +1,7 @@
 NAME					=	webserv
 
-SRC						=	main.cpp Webserv.cpp
+SRC						=	main.cpp Webserv.cpp utils.cpp
+C_DIR					= 	src
 
 OBJ 					= 	$(SRC:.cpp=.o)
 OBJ_DIR					=	obj
@@ -8,7 +9,7 @@ OBJ_FILES				=	$(addprefix $(OBJ_DIR)/, $(OBJ))
 
 CFLAGS					=	-Werror -Wextra -Wall -std=c++98
 
-$(OBJ_DIR)/%.o			: 	%.cpp
+$(OBJ_DIR)/%.o			: 	$(C_DIR)/%.cpp
 							@mkdir -p $(OBJ_DIR)
 							c++ $(CFLAGS) -c $< -o $@
 
