@@ -12,9 +12,7 @@ Config::Config() {
 
 	ServerConfig two_server;
 	two_server.ports.push_back(8083);
-	two_server.ports.push_back(8084);
-	two_server.ports.push_back(8085);
-    servers.push_back(two_server);
+	servers.push_back(two_server);
 }
 
 Config::~Config() {
@@ -23,45 +21,31 @@ Config::~Config() {
 
 // ------------------------------  (DELETEME)
 
-Webserv::Webserv(const Config& configuration): active(true), configuration(configuration) {
+Webserv::Webserv(Config configuration): active(true), configuration(configuration) {
 	logger(STDOUT_FILENO, DEBUG, "Constructor Webserv called");
-}
-
-Webserv::Webserv(const Webserv &obj):
-	active(obj.active),
-    configuration(obj.configuration),
-    fds_sockets(obj.fds_sockets),
-	fds_clients(obj.fds_clients),
-    clients_state(obj.clients_state)
-{
-	logger(STDOUT_FILENO, DEBUG, "Webserv object constructor called");
-}
-
-Webserv	&Webserv::operator=(const Webserv &obj)
-{
-	logger(STDOUT_FILENO, DEBUG, "Webserv assignation operator called");
-	if (this != &obj)
-		this->active = obj.active;
-	return (*this);
 }
 
 Webserv::~Webserv() {
 	logger(STDOUT_FILENO, DEBUG, "Destructor Webserv called");
+
+	for (std::map<int, ClientState>::iterator it = clients_state.begin(); it != clients_state.end(); ++it) {
+		delete it->second.request;
+		delete it->second.response;
+	}
 
 	for (std::vector<int>::const_iterator it = fds_clients.begin(); it != fds_clients.end(); ++it)
 		close(*it);
 
 	for (std::vector<int>::const_iterator it = fds_sockets.begin(); it != fds_sockets.end(); ++it)
 		close(*it);
-
 }
 
 void Webserv::initializePorts() {
 	logger(STDOUT_FILENO, INFO, "Initializing listening ports");
 
 	int fd_socket;
-    int opt = 1;
-    int flags;
+	int opt = 1;
+	int flags;
 
 	const std::vector<ServerConfig> servers = configuration.servers;
 	for (std::vector<ServerConfig>::const_iterator it = servers.begin(); it != servers.end(); ++it) {
@@ -78,7 +62,7 @@ void Webserv::initializePorts() {
 				throw std::runtime_error("The port " + stringify(ntohs(server_addr.sin_port)) + " could not be created.");
 
 			if (setsockopt(fd_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
-    			throw std::runtime_error("Error setting socket parameters.");
+				throw std::runtime_error("Error setting socket parameters.");
 
 			if (bind(fd_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0)
 				throw std::runtime_error("Port assignment error " + stringify(ntohs(server_addr.sin_port)));
@@ -97,140 +81,165 @@ void Webserv::initializePorts() {
 }
 
 int Webserv::initializeSelect(fd_set &read_fds, fd_set &write_fds) {
-    
-    int max_fd = 0;
-    int client_fd;
-    struct timeval timeout = {5, 0}; // NULL (bloqueo indefinido)
-    FD_ZERO(&read_fds);
-    FD_ZERO(&write_fds);
 
-    for (size_t i = 0; i < fds_sockets.size(); ++i) {
-        FD_SET(fds_sockets[i], &read_fds);
-        if (fds_sockets[i] > max_fd)
-            max_fd = fds_sockets[i];
-    }
+	int max_fd = 0;
+	int client_fd;
+	struct timeval timeout = {5, 0}; // NULL (bloqueo indefinido)
+	FD_ZERO(&read_fds);
+	FD_ZERO(&write_fds);
 
-    for (size_t i = 0; i < fds_clients.size(); ++i) {
-        client_fd = fds_clients[i];
-        FD_SET(client_fd, &read_fds);
+	for (size_t i = 0; i < fds_sockets.size(); ++i) {
+		FD_SET(fds_sockets[i], &read_fds);
+		if (fds_sockets[i] > max_fd)
+			max_fd = fds_sockets[i];
+	}
 
-        if (clients_state[client_fd].ready_to_write)
-            FD_SET(client_fd, &write_fds);
+	for (size_t i = 0; i < fds_clients.size(); ++i) {
+		client_fd = fds_clients[i];
+		FD_SET(client_fd, &read_fds);
 
-        if (client_fd > max_fd)
-            max_fd = client_fd;
-    }
+		if (clients_state[client_fd].ready_to_write)
+			FD_SET(client_fd, &write_fds);
 
-    return (select(max_fd + 1, &read_fds, &write_fds, NULL, &timeout));
+		if (client_fd > max_fd)
+			max_fd = client_fd;
+	}
+
+	return (select(max_fd + 1, &read_fds, &write_fds, NULL, &timeout));
 }
 
 void Webserv::handleConnections(fd_set &read_fds) {
 
-    int client_fd;
+	int client_fd;
 
-    for (size_t i = 0; i < fds_sockets.size(); ++i) {
+	for (size_t i = 0; i < fds_sockets.size(); ++i) {
 
-        if (FD_ISSET(fds_sockets[i], &read_fds)) {
-            struct sockaddr_in client_addr;
-            socklen_t client_len = sizeof(client_addr);
-            client_fd = accept(fds_sockets[i], (struct sockaddr*)&client_addr, &client_len);
+		if (FD_ISSET(fds_sockets[i], &read_fds)) {
+			struct sockaddr_in client_addr;
+			socklen_t client_len = sizeof(client_addr);
+			client_fd = accept(fds_sockets[i], (struct sockaddr*)&client_addr, &client_len);
 
-            if (client_fd < 0) {
-                logger(STDOUT_FILENO, ERROR, "Error establishing incoming connection.");
-                continue;
-            }
+			if (client_fd < 0) {
+				logger(STDOUT_FILENO, ERROR, "Error establishing incoming connection.");
+				continue;
+			}
 
-            fds_clients.push_back(client_fd);
-            clients_state[client_fd] = ClientState();
-            logger(STDOUT_FILENO, INFO, "New client connected in port " + stringify(client_fd));
-        }
-    }
+			fds_clients.push_back(client_fd);
+			clients_state[client_fd] = ClientState();
+			clients_state[client_fd].response = new Response(client_fd);
+			clients_state[client_fd].request = new Request(client_fd, *clients_state[client_fd].response);
+			logger(STDOUT_FILENO, INFO, "New client connected in port " + stringify(client_fd));
+		}
+	}
 }
 
 void Webserv::clientRequest(int client_fd, bool &close_connection) {
-    char buffer[BUFFER_SIZE] = {0};
-    ssize_t bytes_read = recv(client_fd, buffer, sizeof(buffer), 0);
+	std::vector<char> buffer(BUFFER_SIZE);
 
-    if (bytes_read <= 0) {
-        close_connection = true;
-    } else {
-        clients_state[client_fd].request.append(buffer, bytes_read);
+	ssize_t bytes_read = recv(
+							client_fd,
+							buffer.data(),
+							buffer.size(),
+							0);
 
-        std::string request_log = "Received (" + stringify(bytes_read) + " bytes) from client " + stringify(client_fd);
-        logger(STDOUT_FILENO, SUCCESS, request_log);
-        logger(STDOUT_FILENO, SUCCESS, buffer);
-
-        std::string content = "<h1>Probando probando!!!!</h1>";
-        clients_state[client_fd].response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + stringify(content.length()) + "\r\n\r\n" + content;
-        clients_state[client_fd].ready_to_write = true;
-    }
+	if (bytes_read <= 0) {
+		close_connection = true;
+		// PERO OJO Con request multiples
+	} else {
+		clients_state[client_fd].request->setRecvData(buffer.data(), bytes_read);
+		clients_state[client_fd].ready_to_write = clients_state[client_fd].request->setSendData();
+	}
 }
 
 void Webserv::clientResponse(int client_fd, bool &close_connection) {
-    ssize_t bytes_sent = send(client_fd, clients_state[client_fd].response.c_str(), clients_state[client_fd].response.size(), 0);
+	ssize_t bytes_sent = send(
+							client_fd,
+							clients_state[client_fd].response->getSendData(),
+							clients_state[client_fd].response->getBytesToSend(),
+							0);
 
-    if (bytes_sent <= 0) {
-        close_connection = true;
-    } else {
-        std::string log_msg = "Sent (" + stringify(bytes_sent) + " bytes) to client " + stringify(client_fd);
-        logger(STDOUT_FILENO, SUCCESS, log_msg);
-        close_connection = true;
-    }
+	if (bytes_sent <= 0) {
+		close_connection = true;
+	} else {
+		// Si cliente respondido = its_served
+		// PERO OJO Con respuestas multiples
+		close_connection = true;
+	}
+
+
 }
 
 void Webserv::start() {
-    logger(STDOUT_FILENO, INFO, "Server ready to establish connections with clients");
+	logger(STDOUT_FILENO, INFO, "Server ready to establish connections with clients");
 
-    int activity;
-    int client_fd;
-    bool close_connection;
+	int activity;
+	int client_fd;
+	bool close_connection;
 
-    fd_set read_fds, write_fds;
+	fd_set read_fds, write_fds;
 
-    while (active) {
+	while (active) {
 
-        activity = initializeSelect(read_fds, write_fds);
+		activity = initializeSelect(read_fds, write_fds);
 
-        if (activity < 0) {
-            if (errno != EINTR)
+		if (activity < 0) {
+			if (errno != EINTR)
 				throw std::runtime_error("Error in select() ");
-            continue;
-        }
+			continue;
+		}
 
-        if (!activity) {
-            logger(STDOUT_FILENO, DEBUG, "Timeout in select() - no activity");
-            continue;
-        }
+		if (!activity) {
+			logger(STDOUT_FILENO, DEBUG, "Timeout in select() - no activity");
+			continue;
+		}
 
-        handleConnections(read_fds);
+		handleConnections(read_fds);
 
-        for (std::vector<int>::iterator it = fds_clients.begin(); it != fds_clients.end(); ) {
+		for (std::vector<int>::iterator it = fds_clients.begin(); it != fds_clients.end(); ) {
 
 			client_fd = *it;
-            close_connection = false;
+			close_connection = false;
 
-            if (FD_ISSET(client_fd, &read_fds))
-                clientRequest(client_fd, close_connection);
+			if (FD_ISSET(client_fd, &read_fds))
+				clientRequest(client_fd, close_connection);
 
-            if (!close_connection && FD_ISSET(client_fd, &write_fds) && clients_state[client_fd].ready_to_write)
-                clientResponse(client_fd, close_connection);
+			if (!close_connection && FD_ISSET(client_fd, &write_fds) && clients_state[client_fd].ready_to_write)
+				clientResponse(client_fd, close_connection);
 
-            if (close_connection) {
-                close(client_fd);
-                clients_state.erase(client_fd);
-                it = fds_clients.erase(it);
-                logger(STDOUT_FILENO, INFO, "Client disconnected: " + stringify(client_fd));
-            } else {
-                ++it;
-            }
-        }
-    }
+			if (close_connection) {
+				if (clients_state[client_fd].request)
+					delete clients_state[client_fd].request;
+				if (clients_state[client_fd].response)
+					delete clients_state[client_fd].response;
+				close(client_fd);
+				clients_state.erase(client_fd);
+				it = fds_clients.erase(it);
+
+				logger(STDOUT_FILENO, INFO, "Client disconnected: " + stringify(client_fd));
+			} else {
+				++it; // ****
+			}
+		}
+	}
 }
 
 void Webserv::stop() {
-	active = false;
-	// delete this;
+    active = false;
 
-	for (std::vector<int>::const_iterator it = fds_clients.begin(); it != fds_clients.end(); ++it)
-		close(*it);
+    for (std::map<int, ClientState>::iterator it = clients_state.begin(); it != clients_state.end(); ++it) {
+        if (it->second.request) {
+            delete it->second.request;
+            it->second.request = NULL;
+        }
+        if (it->second.response) {
+            delete it->second.response;
+            it->second.response = NULL;
+        }
+    }
+
+    for (std::vector<int>::const_iterator it = fds_clients.begin(); it != fds_clients.end(); ++it)
+        close(*it);
+
+    fds_clients.clear();
+    clients_state.clear();
 }

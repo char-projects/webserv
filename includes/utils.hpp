@@ -9,8 +9,9 @@
 # include <unistd.h>
 # include <sstream>
 
+# define DEBUG_MODE	true
 # define LOG_FILE	3
-# define LOG_NAME	"/home/csubires/.cd42/42_webserv/src/logger.log"
+# define LOG_NAME	"./logger.log"
 
 enum e_message {
     ERROR,

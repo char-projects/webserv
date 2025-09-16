@@ -1,13 +1,13 @@
 NAME					=	webserv
 
-SRC						=	main.cpp Webserv.cpp utils.cpp
+SRC						=	main.cpp Webserv.cpp Request.cpp  Response.cpp utils.cpp
 C_DIR					= 	src
 
 OBJ 					= 	$(SRC:.cpp=.o)
 OBJ_DIR					=	obj
 OBJ_FILES				=	$(addprefix $(OBJ_DIR)/, $(OBJ))
 
-CFLAGS					=	-Werror -Wextra -Wall -std=c++98
+CFLAGS					=	-g -fsanitize=address -fno-omit-frame-pointer -Werror -Wextra -Wall -std=c++98
 
 $(OBJ_DIR)/%.o			: 	$(C_DIR)/%.cpp
 							@mkdir -p $(OBJ_DIR)

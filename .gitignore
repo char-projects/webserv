@@ -74,5 +74,5 @@ dkms.conf
 !.vscode/extensions.json
 .vscode
 
-.log
+*.log
 webserv

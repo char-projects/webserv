@@ -20,6 +20,10 @@
 # include <vector>
 # include <map>
 
+// Wervserv
+# include "Request.hpp"
+# include "Response.hpp"
+
 # define BUFFER_SIZE 1024
 
 // ------------------------------ Simulating Config class (DELETEME)
@@ -41,33 +45,48 @@ class Config {
 
 // ------------------------------ (DELETEME)
 
+class Request;
+class Response;
+
 struct ClientState {
-	std::string request;
-	std::string response;
-	bool ready_to_write;
+	bool		ready_to_write;
+	bool		its_served;
+	Request		*request;
+	Response	*response;
+
+
 };
 
+/*
+
+clients_state[client_fd].ready_to_write = false;
+clients_state[client_fd].its_served = false;
+clients_state[client_fd].request = NULL;
+clients_state[client_fd].response = NULL;
+*/
 
 class Webserv {
 
     public:
-        Webserv(const Config& configuration);
-		Webserv(const Webserv &obj);
-		Webserv		&operator=(const Webserv &obj);
+        Webserv(Config configuration);
         ~Webserv();
 
 		void initializePorts();
         void start();
 		void stop();
-		
+
 	private:
+		Webserv();
+		Webserv(const Webserv &obj);
+		Webserv &operator=(const Webserv &obj);
+
+        std::map<int, ClientState> clients_state;
 		bool active;
-		const Config& configuration;
+		Config configuration;
         std::vector<int> fds_sockets;
 		std::vector<int> fds_clients;
-        std::map<int, ClientState> clients_state;
+		std::vector<int> clients_served;
 
-        Webserv();
 		int initializeSelect(fd_set &read_fds, fd_set &write_fds);
 		void handleConnections(fd_set &read_fds);
 		void clientRequest(int client_fd, bool &close_connection);
