@@ -1,3 +1,6 @@
+#include <csignal>
+#include <cstdlib>
+
 #include "../includes/Webserv.hpp"
 // #include "../includes/Config.hpp"
 

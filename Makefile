@@ -8,7 +8,7 @@ OBJ 					= 	$(SRC:.cpp=.o)
 OBJ_DIR					=	obj
 OBJ_FILES				=	$(addprefix $(OBJ_DIR)/, $(OBJ))
 
-CFLAGS					=	-Werror -Wextra -Wall -std=c++98
+CFLAGS					=	-g -fsanitize=address -fno-omit-frame-pointer -Werror -Wextra -Wall -std=c++98
 
 $(OBJ_DIR)/%.o			: 	src/%.cpp
 							@mkdir -p $(OBJ_DIR)
