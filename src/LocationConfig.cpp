@@ -1,4 +1,4 @@
-#include "../../includes/config/LocationConfig.hpp"
+#include "../includes/LocationConfig.hpp"
 
 LocationConfig::LocationConfig() {
     filePath = "";

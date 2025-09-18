@@ -1,4 +1,4 @@
-#include "../../includes/config/ServerConfig.hpp"
+#include "../includes/ServerConfig.hpp"
 
 ServerConfig::ServerConfig() : host(""), ports() {}
 

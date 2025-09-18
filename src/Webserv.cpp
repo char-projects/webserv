@@ -8,17 +8,42 @@ Webserv::Webserv() {
 Webserv::~Webserv() {
     // TODO Cerrar todos los descriptores de clientes
 
-    for (int socket: fds_socket)
+    /* for (int socket: fds_socket)
     {
         close(socket);
-    }
+    } */
 
+}
+
+Webserv::Webserv(const Webserv &other) {
+    *this = other;
+}
+
+Webserv &Webserv::operator=(const Webserv &other) {
+    (void)other;
+    return *this;
+}
+
+Webserv::Webserv(const std::string &configFile) : configFile(configFile) {
+    LocationConfig location;
+    location.setFilePath(configFile);
+}
+
+void Webserv::run() {
+    ConfigParsing config;
+    if (!config.isFileReadable(configFile)) {
+        std::cerr << "Configuration file is not readable" << std::endl;
+        return;
+    }
+    std::vector<std::string> tokens = config.tokenize(configFile, " \n\t");
+    config.parse(tokens);
+    std::cout << "Webserver is running :)" << std::endl;
 }
 
 void Webserv::start() {
 
     std::cout << "Starting up server" << std::endl;
-
+/*
     sockaddr_in server_addr;
     int new_socket;
     int opt = 1;
@@ -62,9 +87,8 @@ void Webserv::start() {
     close(new_socket);
     close(fd);
 
-    // PAra multiserver
-    /*
-        fds_socket.push_back(fd);
-    */
-
+    // Para multiserver
+    //    fds_socket.push_back(fd);
+    
+*/
 }

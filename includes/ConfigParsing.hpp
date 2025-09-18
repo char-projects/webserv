@@ -7,8 +7,8 @@
 #include <sstream>
 #include <sys/stat.h>
 #include <cstdlib>
-#include "../config/LocationConfig.hpp"
-#include "../config/ServerConfig.hpp"
+#include "LocationConfig.hpp"
+#include "ServerConfig.hpp"
 
 class ConfigParsing {
     private:
