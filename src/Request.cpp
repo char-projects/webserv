@@ -14,20 +14,27 @@ Request::~Request() {
 void Request::setRecvData(const std::string& src_recv_data, size_t bytes_read) {
 
 
-    if (bytes_read <= 0 || bytes_read > BUFFER_SIZE) {
+	if (bytes_read <= 0 || bytes_read > BUFFER_SIZE) {
 		// TODO error
-        return ;
-    }
+		return ;
+	}
 
-    recv_data.append(src_recv_data, bytes_read);
+	recv_data.append(src_recv_data);
 
 	std::string request_log = "Received (" + stringify(bytes_read) + " bytes) from client " + stringify(client_fd);
 	logger(STDOUT_FILENO, SUCCESS, request_log);
 	logger(STDOUT_FILENO, SUCCESS, recv_data);
 	// TODO --------------------
 	parseRecvData();
-}
 
+
+	std::string delimiter = "\n";
+	std::string token = recv_data.substr(0, recv_data.find(delimiter));
+
+	//for (int i = 0; i < token.size(); ++i)
+	//	logger(STDOUT_FILENO, DEBUG, token.pop_back);
+
+}
 
 size_t Request::getBytesRecv() const {
 	return (recv_data.size());

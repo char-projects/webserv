@@ -21,7 +21,7 @@ void Response::setSendData(const std::string& src_send_data) {
 
 const char* Response::getSendData() const {
 	std::string log_msg = "Sent (" + stringify(send_data.size()) + " bytes) to client " + stringify(client_fd);
-    logger(STDOUT_FILENO, SUCCESS, log_msg);
+	logger(STDOUT_FILENO, SUCCESS, log_msg);
 	return (send_data.data());
 }
 
