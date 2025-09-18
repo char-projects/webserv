@@ -27,7 +27,6 @@ void Request::setRecvData(const std::string& src_recv_data, size_t bytes_read) {
 	// TODO --------------------
 	parseRecvData();
 
-
 	std::string delimiter = "\n";
 	std::string token = recv_data.substr(0, recv_data.find(delimiter));
 

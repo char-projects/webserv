@@ -13,9 +13,18 @@ Response::~Response() {
 
 void Response::setSendData(const std::string& src_send_data) {
 	(void) src_send_data;
-	std::string body = "<h1>Probando probando!!!!</h1>";
-	std::string header = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: " + stringify(body.length()) + "\r\n\r\n";
 
+	std::string filename = "www/index.html";
+	
+	std::ifstream file(filename.c_str());
+	std::string body;
+	if (file) {
+		std::stringstream buffer;
+		buffer << file.rdbuf();
+		body = buffer.str();
+	}
+
+	std::string header = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: " + stringify(body.length()) + "\r\n\r\n";
 	send_data = header + body;
 }
 
