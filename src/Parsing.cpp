@@ -20,6 +20,10 @@ ConfigParsing::~ConfigParsing() {
     servers.clear();
 }
 
+std::vector<ServerConfig *> ConfigParsing::getServers() const {
+    return servers;
+}
+
 void ConfigParsing::setConfigFile(const std::string &configFile) {
     this->configFile = configFile;
     LocationConfig location;
