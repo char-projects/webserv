@@ -4,13 +4,13 @@
 // ------------------------------ Simulation Config class (DELETEME)
 
 Config::Config() {
-	ServerConfig one_server;
+	Server_Config one_server;
 	one_server.ports.push_back(8080);
 	one_server.ports.push_back(8081);
 	one_server.ports.push_back(8082);
 	servers.push_back(one_server);
 
-	ServerConfig two_server;
+	Server_Config two_server;
 	two_server.ports.push_back(8083);
 	servers.push_back(two_server);
 }
@@ -47,8 +47,8 @@ void Webserv::initializePorts() {
 	int opt = 1;
 	int flags;
 
-	const std::vector<ServerConfig> servers = configuration.servers;
-	for (std::vector<ServerConfig>::const_iterator it = servers.begin(); it != servers.end(); ++it) {
+	const std::vector<Server_Config> servers = configuration.servers;
+	for (std::vector<Server_Config>::const_iterator it = servers.begin(); it != servers.end(); ++it) {
 
 		const std::vector<int> ports = (*it).ports;
 		for (std::vector<int>::const_iterator it2 = ports.begin(); it2 != ports.end(); ++it2) {

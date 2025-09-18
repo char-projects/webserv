@@ -2,7 +2,7 @@
 #include <cstdlib>
 
 #include "../includes/Webserv.hpp"
-// #include "../includes/Config.hpp"
+#include "../includes/ConfigParsing.hpp"
 
 int main(int argc, char **argv) {
  
@@ -12,7 +12,7 @@ int main(int argc, char **argv) {
     if (argc > 1)
         config_file = argv[1];
 
-    Webserv webserv(config_file);
+    // Webserv webserv(config_file);
     ConfigParsing config;
     config.setConfigFile(config_file);
     if (!config.isFileReadable(config_file)) {

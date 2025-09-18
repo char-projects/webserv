@@ -28,7 +28,7 @@
 
 // ------------------------------ Simulating Config class (DELETEME)
 
-struct ServerConfig {
+struct Server_Config {
     std::vector<int> ports;
 };
 
@@ -38,7 +38,7 @@ class Config {
 		Config();
 		~Config();
 
-		std::vector<ServerConfig> servers;
+		std::vector<Server_Config> servers;
 };
 
 // https://alexhost.com/faq/how-to-make-nginx-server-listen-on-multiple-ports/
