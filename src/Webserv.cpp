@@ -1,7 +1,10 @@
 #include "../includes/Webserv.hpp"
+#include "../includes/ConfigParsing.hpp"
 #include "../includes/utils.hpp"
 
 // ------------------------------ Simulation Config class (DELETEME)
+
+/*
 
 Config::Config() {
 	Server_Config one_server;
@@ -18,10 +21,11 @@ Config::Config() {
 Config::~Config() {
 
 }
+*/
 
 // ------------------------------  (DELETEME)
 
-Webserv::Webserv(Config configuration): active(true), configuration(configuration) {
+Webserv::Webserv(ConfigParsing configuration): active(true), configuration(configuration) {
 	logger(STDOUT_FILENO, DEBUG, "Constructor Webserv called");
 }
 
@@ -46,8 +50,9 @@ void Webserv::initializePorts() {
 	int fd_socket;
 	int opt = 1;
 	int flags;
-
-	const std::vector<Server_Config> servers = configuration.servers;
+	
+	/*
+	const std::vector<ConfigParsing> servers = configuration.servers;
 	for (std::vector<Server_Config>::const_iterator it = servers.begin(); it != servers.end(); ++it) {
 
 		const std::vector<int> ports = (*it).ports;
@@ -78,6 +83,7 @@ void Webserv::initializePorts() {
 			logger(STDOUT_FILENO, INFO, "Listening at the port " + stringify(*it2));
 		}
 	}
+		*/
 }
 
 int Webserv::initializeSelect(fd_set &read_fds, fd_set &write_fds) {
