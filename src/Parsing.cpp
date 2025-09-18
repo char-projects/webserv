@@ -1,5 +1,6 @@
 #include "../includes/ConfigParsing.hpp"
 
+
 ConfigParsing::ConfigParsing() {}
 
 ConfigParsing::ConfigParsing(const ConfigParsing &other) {
@@ -17,6 +18,12 @@ ConfigParsing::~ConfigParsing() {
     for (size_t i = 0; i < servers.size(); i++)
         delete servers[i];
     servers.clear();
+}
+
+void ConfigParsing::setConfigFile(const std::string &configFile) {
+    this->configFile = configFile;
+    LocationConfig location;
+    location.setFilePath(configFile);
 }
 
 bool ConfigParsing::isFileReadable(const std::string &filePath) {

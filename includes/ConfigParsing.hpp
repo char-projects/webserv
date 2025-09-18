@@ -13,6 +13,7 @@
 class ConfigParsing {
     private:
         std::vector<ServerConfig *> servers;
+        std::string configFile;
 
     public:
         ConfigParsing();
@@ -23,6 +24,7 @@ class ConfigParsing {
         bool isFileReadable(const std::string &filePath);
         std::vector<std::string> tokenize(const std::string &content, const std::string &delimiters);
         void parse(std::vector<std::string> &tokens);
+        void setConfigFile(const std::string &configFile);
 };
 
 #endif

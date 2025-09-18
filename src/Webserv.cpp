@@ -24,22 +24,6 @@ Webserv &Webserv::operator=(const Webserv &other) {
     return *this;
 }
 
-Webserv::Webserv(const std::string &configFile) : configFile(configFile) {
-    LocationConfig location;
-    location.setFilePath(configFile);
-}
-
-void Webserv::run() {
-    ConfigParsing config;
-    if (!config.isFileReadable(configFile)) {
-        std::cerr << "Configuration file is not readable" << std::endl;
-        return;
-    }
-    std::vector<std::string> tokens = config.tokenize(configFile, " \n\t");
-    config.parse(tokens);
-    std::cout << "Webserver is running :)" << std::endl;
-}
-
 void Webserv::start() {
 
     std::cout << "Starting up server" << std::endl;

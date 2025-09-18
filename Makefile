@@ -1,7 +1,8 @@
 NAME					=	webserv
 
 SRC						=	main.cpp Webserv.cpp Parsing.cpp \
-							LocationConfig.cpp ServerConfig.cpp	 
+							LocationConfig.cpp ServerConfig.cpp \
+							Request.cpp Response.cpp utils.cpp \	 
 
 OBJ 					= 	$(SRC:.cpp=.o)
 OBJ_DIR					=	obj

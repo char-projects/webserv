@@ -33,7 +33,6 @@ class Webserv {
     private:
         //std::map<int, Client> clients;
         std::vector<int> fds_socket;
-        std::string configFile;
 };
 
 #endif
