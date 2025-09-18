@@ -55,7 +55,7 @@ void Webserv::initializePorts() {
 	const std::vector<ConfigParsing> servers = configuration.servers;
 	for (std::vector<Server_Config>::const_iterator it = servers.begin(); it != servers.end(); ++it) {
 
-		const std::vector<int> ports = (*it).ports;
+		const std::vector<int> ports = (*it)->getPorts();
 		for (std::vector<int>::const_iterator it2 = ports.begin(); it2 != ports.end(); ++it2) {
 
 			sockaddr_in server_addr;

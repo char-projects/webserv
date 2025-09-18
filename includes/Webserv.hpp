@@ -23,23 +23,10 @@
 // Wervserv
 # include "Request.hpp"
 # include "Response.hpp"
+# include "ConfigParsing.hpp"
+# include "ServerConfig.hpp"
 
 # define BUFFER_SIZE 1024
-
-// ------------------------------ Simulating Config class (DELETEME)
-
-struct Server_Config {
-    std::vector<int> ports;
-};
-
-class Config {
-
-	public:
-		Config();
-		~Config();
-
-		std::vector<Server_Config> servers;
-};
 
 // https://alexhost.com/faq/how-to-make-nginx-server-listen-on-multiple-ports/
 
@@ -68,7 +55,7 @@ clients_state[client_fd].response = NULL;
 class Webserv {
 
     public:
-        Webserv(Config configuration);
+        Webserv(ConfigParsing &config);
         ~Webserv();
 
 		void initializePorts();
@@ -79,10 +66,10 @@ class Webserv {
 		Webserv();
 		Webserv(const Webserv &obj);
 		Webserv &operator=(const Webserv &obj);
+        ConfigParsing &config;
 
         std::map<int, ClientState> clients_state;
 		bool active;
-		Config configuration;
         std::vector<int> fds_sockets;
 		std::vector<int> fds_clients;
 		std::vector<int> clients_served;

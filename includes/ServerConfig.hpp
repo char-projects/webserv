@@ -8,8 +8,7 @@
 class ServerConfig {
     private:
         std::string host;
-        std::vector<int> ports;
-        
+        std::vector<int> ports;      
         std::vector<std::string> locations;
 
     public:

@@ -25,6 +25,7 @@ class ConfigParsing {
         std::vector<std::string> tokenize(const std::string &content, const std::string &delimiters);
         void parse(std::vector<std::string> &tokens);
         void setConfigFile(const std::string &configFile);
+        std::vector<ServerConfig *> getServers() const;
 };
 
 #endif
