@@ -10,16 +10,13 @@ Webserv *webserv = NULL;
 void signalHandler(int signum) {
 	(void) signum;
 	logger(STDOUT_FILENO, DEBUG, "Interrupt signal received");
-
     if (webserv)
         webserv->stop();
 }
 
 int main(int argc, char **argv) {
- 
-    std::string config_file = "configs/default.conf";
-;
 
+    std::string config_file = "configs/default.conf";
     if (argc > 1)
         config_file = argv[1];
 
@@ -34,25 +31,18 @@ int main(int argc, char **argv) {
     std::cout << "Webserver is running :)" << std::endl;
 
     signal(SIGINT, signalHandler);
-	
-	if (argc > 1)
-		config_file = argv[1];
 
 	try {
 		webserv = new Webserv(config);
 		webserv->initializePorts();
 		webserv->start();
-
 	} catch (const std::exception &e) {
 		logger(STDOUT_FILENO, ERROR, e.what());
-
         if (webserv) {
             delete webserv;
             webserv = NULL;
         }
-
 		return (EXIT_FAILURE);
 	}
-
     return (EXIT_SUCCESS);
 }

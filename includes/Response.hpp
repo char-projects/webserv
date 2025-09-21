@@ -1,27 +1,55 @@
 #ifndef RESPONSE_HPP
-#define RESPONSE_HPP
+# define RESPONSE_HPP
 
 # include <string>
 # include <cstring>
+// ListDirectory
+# include <dirent.h>
+
+# include "Webserv.hpp"
+# include "ResponseHeader.hpp"
+# include "ServerConfig.hpp"
+# include "Request.hpp"
+
+# define MESSAGE_LOOP "<html><body><h1>500 Internal Server Error</h1></body></html>"
+
+class ServerConfig;
+class Request;
+class ResponseHeader;
 
 class Response {
 
 	public:
-        Response(const int client_fd);
-        ~Response();
-
-		void				setSendData(const std::string& src_send_data);
-		const char*			getSendData() const;
-		size_t				getBytesToSend() const;
+		Response(const int client_fd, const Request& request, const ServerConfig& config);
+		~Response();
+		const char*			getResponse();
+		size_t				getSize();
 
 	private:
-        Response();
+		std::string			send_response;
+		std::string			send_header;
+		std::string			send_body;
+		int					client_fd;
+		size_t				status_code;
+		size_t				bytes_send;
+		size_t				counter;
+		const Request&		request;
+		const ServerConfig&	config;
+		ResponseHeader*		response_header;
+
+		Response();
 		Response(const Response &obj);
 		Response &operator=(const Response &obj);
 
-		std::string	send_data;
-		int			client_fd;
-		size_t		bytes_send;
+		void				readContent(const std::string &path);
+		void				writeContent(const std::string &path, std::string content);
+		void				deleteContent(const std::string &path);
+		void		 		ListDirectory(const std::string& path, const std::string& uri);
+		const std::string	getPathStatusCode();
 };
 
 #endif
+
+/*
+echo -e "GET / HTTP/1.1\r\nHost: localhost\r\n\r\n" | nc localhost 8080
+*/
