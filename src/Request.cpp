@@ -14,6 +14,7 @@ Request::Request(int client_fd) {
     uri = "https://localhost:8080/index.html#something";
 	http_version = "";
 	body = "";
+    recv_data = "";
 }
 
 Request::Request(const Request &other) {
