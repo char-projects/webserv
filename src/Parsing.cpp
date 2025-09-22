@@ -97,14 +97,13 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
             i += 2; // Skip "server" and "{"
             while (i < tokens.size() && tokens[i] != "}") {
                 if (tokens[i] == "listen") {
-                    if (i + 1 < tokens.size()) {
-                        int port = atoi(tokens[i + 1].c_str());
+                    size_t j = i + 1;
+                    while (j < tokens.size() && isdigit(tokens[j][0])) {
+                        int port = atoi(tokens[j].c_str());
                         server->setPorts(port);
-                        i += 2;
-                    } else {
-                        std::cerr << "Error: Expected port number after 'listen'" << std::endl;
-                        i++;
+                        j++;
                     }
+                    i = j;
                 } else if (tokens[i] == "server_name") {
                     if (i + 1 < tokens.size()) {
                         server->setHost(tokens[i + 1]);
