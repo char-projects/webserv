@@ -1,4 +1,5 @@
 #include "../includes/Response.hpp"
+#include "../includes/Request.hpp"
 #include "../includes/utils.hpp"
 
 Response::Response(const int client_fd, const Request& request, const ServerConfig& config)
@@ -19,17 +20,17 @@ Response::~Response() {
 }
 
 const char* Response::getResponse() {
-	status_code = request.status_code;
-	logger(STDOUT_FILENO, DEBUG, "Processing request - Method: " + request.method + ", Path: " + request.path + ", Status: " + stringify(status_code));
+	status_code = request.getStatusCode();
+	logger(STDOUT_FILENO, DEBUG, "Processing request - Method: " + request.getMethod() + ", Path: " + request.getPath() + ", Status: " + stringify(status_code));
 
 	if (status_code == 200) {
-		if (request.method == "GET") {
-			readContent(request.path);
-		} else if (request.method == "POST") {
+		if (request.getMethod() == "GET") {
+			readContent(request.getPath());
+		} else if (request.getMethod() == "POST") {
 			status_code = 501; // TODOOOOO
 			readContent(getPathStatusCode());
-		} else if (request.method == "DELETE") {
-			deleteContent(request.path);
+		} else if (request.getMethod() == "DELETE") {
+			deleteContent(request.getPath());
 		} else {
 			status_code = 405;
 			readContent(getPathStatusCode());
@@ -40,8 +41,7 @@ const char* Response::getResponse() {
 
 	logger(STDOUT_FILENO, DEBUG, "Body size before headers: " + stringify(send_body.size()));
 	response_header->setContentLength(send_body.size());
-	response_header->setContentType(request.path);
-	response_header->setLocation(request.location);
+	response_header->setContentType(request.getPath());
 	send_header = response_header->getHeader(status_code);
 	send_response.clear();
 	send_response.append(send_header);
@@ -116,7 +116,7 @@ void Response::readContent(const std::string &path) {
 	} else {
 		struct stat s;
 		if (stat(path.c_str(), &s) == 0 && S_ISDIR(s.st_mode)) {
-			ListDirectory(path, request.uri);
+			ListDirectory(path, request.getUri());
 		} else {
 			status_code = 404;
 			readContent(getPathStatusCode());

@@ -1,3 +1,4 @@
+
 #ifndef UTILS_H
 # define UTILS_H
 
@@ -31,6 +32,7 @@ std::string stringify(const T& value) {
 }
 
 void logger(int out, e_message type, const std::string& message);
+std::string trim(const std::string& str);
 std::string format_string(const std::string& format, const std::vector<std::string>& args);
 bool pathIsFile(const std::string& path);
 
