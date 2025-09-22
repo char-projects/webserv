@@ -58,6 +58,9 @@ size_t Response::getSize() {
 
 const std::string Response::getPathStatusCode() {
 
+
+
+
 	/*
 	std::vector<std::string> pairs = config.getLocations();
 	for (std::vector<std::pair<int, std::string> >::const_iterator it = pairs.begin(); it != pairs.end(); ++it) {

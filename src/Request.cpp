@@ -13,7 +13,7 @@ Request::Request(const int client_fd) {
 	uri = "https://localhost:8080/index.html#something";
 	path = "www/index.html";
 	location = "";
-	status_code = 200;
+	status_code = 500;
 	method = "GET";
 
 	valid_methods.push_back("GET");
