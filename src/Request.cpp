@@ -1,7 +1,8 @@
 #include "../includes/Request.hpp"
 #include "../includes/utils.hpp"
 
-Request::Request() {
+Request::Request(int client_fd) {
+	logger(STDOUT_FILENO, DEBUG, "Constructor Request called");
 	client_fd = -1;
 	status_code = 500;
 	method = "GET";
@@ -10,21 +11,7 @@ Request::Request() {
 	valid_methods.push_back("DELETE");
 	valid_methods.push_back("UNKNOWN");
 	path = "www/index.html";
-	http_version = "";
-	body = "";
-}
-
-Request::Request(int client_fd, Response &response) {
-	logger(STDOUT_FILENO, DEBUG, "Constructor Request called");
-	(void)response;
-	this->client_fd = client_fd;
-	status_code = 500;
-	method = "GET";
-	valid_methods.push_back("GET");
-	valid_methods.push_back("POST");
-	valid_methods.push_back("DELETE");
-	valid_methods.push_back("UNKNOWN");
-	path = "www/index.html";
+    uri = "https://localhost:8080/index.html#something";
 	http_version = "";
 	body = "";
 }

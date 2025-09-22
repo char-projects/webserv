@@ -7,8 +7,6 @@
 # include <vector>
 # include "Webserv.hpp"
 
-class Response;
-
 class Request {
 	private:
 		std::map<std::string, std::string>	parameters;
@@ -23,11 +21,9 @@ class Request {
 		ssize_t		status_code;
 		int			client_fd;
 		std::string	recv_data;
-		size_t		bytes_recv;
 
 	public:
-        Request();
-		Request(int client_fd, Response &response);
+		Request(int client_fd);
 		Request(const Request &other);
 		Request &operator=(const Request &other);
 		~Request();
