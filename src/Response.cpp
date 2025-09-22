@@ -4,7 +4,6 @@
 
 Response::Response(const int client_fd, const Request& request, const ServerConfig& config)
 	: client_fd(client_fd), request(request), config(config) {
-	logger(STDOUT_FILENO, DEBUG, "Constructor Response called");
 	send_response.clear();
 	send_header.clear();
 	send_body.clear();
@@ -15,7 +14,6 @@ Response::Response(const int client_fd, const Request& request, const ServerConf
 }
 
 Response::~Response() {
-	logger(STDOUT_FILENO, DEBUG, "Destructor Response called");
 	delete response_header;
 }
 

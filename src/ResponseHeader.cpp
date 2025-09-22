@@ -1,15 +1,9 @@
 #include "../includes/ResponseHeader.hpp"
 #include "../includes/utils.hpp"
 
-ResponseHeader::ResponseHeader() : contentType(""), date(""), server(SERVER_NAME)
-{
-	logger(STDOUT_FILENO, DEBUG, "Constructor ResponseHeader called");
-}
+ResponseHeader::ResponseHeader() : contentType(""), date(""), server(SERVER_NAME) {}
 
-ResponseHeader::~ResponseHeader()
-{
-	logger(STDOUT_FILENO, DEBUG, "Destructor ResponseHeader called");
-}
+ResponseHeader::~ResponseHeader() {}
 
 const std::string ResponseHeader::setContent(size_t status_code) {
 	std::string content;

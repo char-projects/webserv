@@ -166,10 +166,8 @@ void Webserv::start() {
 			if (errno != EINTR)
 				throw std::runtime_error("Error in select() ");
 			continue ;
-		} else if (!activity) {
-			logger(STDOUT_FILENO, DEBUG, "Timeout in select() - no activity");
+		} else if (!activity)
 			continue ;
-		}
 
 		handleConnections(read_fds);
 

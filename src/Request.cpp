@@ -2,8 +2,7 @@
 #include "../includes/utils.hpp"
 
 Request::Request(int client_fd) {
-	logger(STDOUT_FILENO, DEBUG, "Constructor Request called");
-	client_fd = -1;
+    this->client_fd = client_fd;
 	status_code = 500;
 	method = "GET";
 	valid_methods.push_back("GET");
@@ -40,9 +39,7 @@ Request &Request::operator=(const Request &other) {
 	return *this;
 }
 
-Request::~Request() {
-    logger(STDOUT_FILENO, DEBUG, "Destructor Request called");
-}
+Request::~Request() {}
 
 void Request::setClientFd(int fd) {
 	this->client_fd = fd;
@@ -231,8 +228,6 @@ void Request::setRecvData(const std::string& src_recv_data, size_t bytes_read) {
 
 	recv_data.append(src_recv_data);
 
-	std::string request_log = "Received (" + stringify(bytes_read) + " bytes) from client " + stringify(client_fd);
-	logger(STDOUT_FILENO, SUCCESS, request_log);
 	logger(STDOUT_FILENO, SUCCESS, recv_data);
 	parseRecvData();
 }
