@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <vector>
+#include <map>
 #include <fstream>
 #include <sstream>
 #include <sys/stat.h>
@@ -13,7 +14,7 @@
 class ConfigParsing {
     private:
         std::vector<ServerConfig *> servers;
-        std::vector<LocationConfig *> locations;
+        std::map<ServerConfig *, std::vector<LocationConfig *> > locations;
         std::string configFile;
 
     public:
@@ -28,7 +29,7 @@ class ConfigParsing {
         void setConfigFile(const std::string &configFile);
         std::string getConfigFile() const;
         std::vector<ServerConfig *> getServers() const;
-        std::vector<LocationConfig *> getLocations() const;
+        std::map<ServerConfig *, std::vector<LocationConfig *> > getLocations() const;
         void printConfig() const;
 };
 

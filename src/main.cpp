@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
     std::vector<std::string> tokens = config.tokenize(config_file, " \n\t");
     config.parse(tokens);
     std::vector<ServerConfig *> servers = config.getServers();
-    std::vector<LocationConfig *> locations = config.getLocations();
+    std::map<ServerConfig *, std::vector<LocationConfig *> > locations = config.getLocations();
     signal(SIGINT, signalHandler);
 
 	try {

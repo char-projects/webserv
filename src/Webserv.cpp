@@ -55,7 +55,6 @@ void Webserv::initializePorts() {
 
 			// fds_sockets.insert(std::make_pair(fd_socket, *it));
 			fds_sockets[fd_socket] = *it;
-			logger(STDOUT_FILENO, INFO, "Listening at the port " + stringify(*it2));
 		}
 	}
 }

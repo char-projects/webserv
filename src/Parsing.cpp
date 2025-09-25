@@ -17,8 +17,11 @@ ConfigParsing::~ConfigParsing() {
     for (size_t i = 0; i < servers.size(); i++)
         delete servers[i];
     servers.clear();
-    for (size_t i = 0; i < locations.size(); i++)
-        delete locations[i];
+    for (std::map<ServerConfig*, std::vector<LocationConfig*> >::iterator it = locations.begin(); it != locations.end(); ++it) {
+        for (size_t j = 0; j < it->second.size(); j++) {
+            delete it->second[j];
+        }
+    }
     locations.clear();
 }
 
@@ -26,7 +29,7 @@ std::vector<ServerConfig *> ConfigParsing::getServers() const {
     return servers;
 }
 
-std::vector<LocationConfig *> ConfigParsing::getLocations() const {
+std::map<ServerConfig *, std::vector<LocationConfig *> > ConfigParsing::getLocations() const {
     return locations;
 }
 
@@ -43,7 +46,6 @@ bool ConfigParsing::isFileReadable(const std::string &filePath) {
     struct stat s;
     if (stat(filePath.c_str(), &s) == 0 && S_ISDIR(s.st_mode))
         return false;
-    // Check if the file ends with .conf
     if (filePath.size() < 5 || filePath.substr(filePath.size() - 5) != ".conf")
         return false;
     return file.good();
@@ -263,7 +265,7 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                                 i++;
                             }
                         }
-                        locations.push_back(location);
+                        locations[server].push_back(location);
                         if (i < tokens.size() && tokens[i] == "}")
                             i++;
                     } else {
@@ -323,64 +325,72 @@ void ConfigParsing::printConfig() const {
         }
         std::cout << std::endl;
         std::cout << "  Locations: ";
-        for (size_t j = 0; j < locations.size(); j++) {
-            std::cout << locations[j]->getLocationPath();
-            if (j < locations.size() - 1)
-                std::cout << ", ";
+        std::map<ServerConfig*, std::vector<LocationConfig*> >::const_iterator locIt = locations.find(servers[i]);
+        if (locIt != locations.end()) {
+            const std::vector<LocationConfig*>& locVec = locIt->second;
+            for (size_t j = 0; j < locVec.size(); j++) {
+                std::cout << locVec[j]->getLocationPath();
+                if (j < locVec.size() - 1)
+                    std::cout << ", ";
+            }
         }
         std::cout << std::endl;
     }
 
     std::cout << std::endl;
-    for (size_t i = 0; i < locations.size(); i++) {
-        std::cout << "Location " << i + 1 << ":" << std::endl;
-        if (!locations[i]->getLocationPath().empty())
-            std::cout << "  Path: " << locations[i]->getLocationPath() << std::endl;
-        std::cout << "  AutoIndex: " << (locations[i]->getAutoIndex() ? "on" : "off") << std::endl;
-        if (!locations[i]->getTryFiles().empty()) {
-            std::cout << "  Try Files: ";
-            std::vector<std::string> tryFiles = locations[i]->getTryFiles();
-            for (size_t j = 0; j < tryFiles.size(); j++) {
-                std::cout << tryFiles[j];
-                if (j < tryFiles.size() - 1)
-                    std::cout << ", ";
+    size_t locCount = 1;
+    for (std::map<ServerConfig*, std::vector<LocationConfig*> >::const_iterator it = locations.begin(); it != locations.end(); ++it) {
+        for (size_t i = 0; i < it->second.size(); i++) {
+            std::cout << "Location " << locCount << ":" << std::endl;
+            if (!it->second[i]->getLocationPath().empty())
+                std::cout << "  Path: " << it->second[i]->getLocationPath() << std::endl;
+            std::cout << "  AutoIndex: " << (it->second[i]->getAutoIndex() ? "on" : "off") << std::endl;
+            if (!it->second[i]->getTryFiles().empty()) {
+                std::cout << "  Try Files: ";
+                std::vector<std::string> tryFiles = it->second[i]->getTryFiles();
+                for (size_t j = 0; j < tryFiles.size(); j++) {
+                    std::cout << tryFiles[j];
+                    if (j < tryFiles.size() - 1)
+                        std::cout << ", ";
+                }
+                std::cout << std::endl;
             }
-            std::cout << std::endl;
-        }
-        std::cout << "  CGI Enabled: " << (locations[i]->getCgiEnabled() ? "on" : "off") << std::endl;
-        if (!locations[i]->getCgi().empty()) {
-            std::cout << "  CGI: ";
-            std::vector<std::pair<std::string, std::string> > cgi = locations[i]->getCgi();
-            for (size_t j = 0; j < cgi.size(); j++) {
-                std::cout << cgi[j].first << "->" << cgi[j].second;
-                if (j < cgi.size() - 1)
-                    std::cout << ", ";
+            std::cout << "  CGI Enabled: " << (it->second[i]->getCgiEnabled() ? "on" : "off") << std::endl;
+            if (!it->second[i]->getCgi().empty()) {
+                std::cout << "  CGI: ";
+                std::vector<std::pair<std::string, std::string> > cgi = it->second[i]->getCgi();
+                for (size_t j = 0; j < cgi.size(); j++) {
+                    std::cout << cgi[j].first << "->" << cgi[j].second;
+                    if (j < cgi.size() - 1)
+                        std::cout << ", ";
+                }
+                std::cout << std::endl;
             }
-            std::cout << std::endl;
-        }
-        if (!locations[i]->getCgiIncludes().empty()) {
-            std::cout << "  CGI Includes: ";
-            std::vector<std::string> cgiIncludes = locations[i]->getCgiIncludes();
-            for (size_t j = 0; j < cgiIncludes.size(); j++) {
-                std::cout << cgiIncludes[j];
-                if (j < cgiIncludes.size() - 1)
-                    std::cout << ", ";
+            if (!it->second[i]->getCgiIncludes().empty()) {
+                std::cout << "  CGI Includes: ";
+                std::vector<std::string> cgiIncludes = it->second[i]->getCgiIncludes();
+                for (size_t j = 0; j < cgiIncludes.size(); j++) {
+                    std::cout << cgiIncludes[j];
+                    if (j < cgiIncludes.size() - 1)
+                        std::cout << ", ";
+                }
+                std::cout << std::endl;
             }
-            std::cout << std::endl;
-        }
-        if (!locations[i]->getFastcgiPass().empty())
-            std::cout << "  FastCGI Pass: " << locations[i]->getFastcgiPass() << std::endl;
-        if (!locations[i]->getFastcgiIndex().empty())
-            std::cout << "  FastCGI Index: " << locations[i]->getFastcgiIndex() << std::endl;
-        if (!locations[i]->getFastcgiParams().empty()) {
-            std::cout << "  FastCGI Params: ";
-            std::vector<std::pair<std::string, std::string> > fastcgiParams = locations[i]->getFastcgiParams();
-            for (size_t j = 0; j < fastcgiParams.size(); j++) {
-                std::cout << fastcgiParams[j].first << "=" << fastcgiParams[j].second;
-                if (j < fastcgiParams.size() - 1)
-                std::cout << ", ";
+            if (!it->second[i]->getFastcgiPass().empty())
+                std::cout << "  FastCGI Pass: " << it->second[i]->getFastcgiPass() << std::endl;
+            if (!it->second[i]->getFastcgiIndex().empty())
+                std::cout << "  FastCGI Index: " << it->second[i]->getFastcgiIndex() << std::endl;
+            if (!it->second[i]->getFastcgiParams().empty()) {
+                std::cout << "  FastCGI Params: ";
+                std::vector<std::pair<std::string, std::string> > fastcgiParams = it->second[i]->getFastcgiParams();
+                for (size_t j = 0; j < fastcgiParams.size(); j++) {
+                    std::cout << fastcgiParams[j].first << "=" << fastcgiParams[j].second;
+                    if (j < fastcgiParams.size() - 1)
+                        std::cout << ", ";
+                }
+                std::cout << std::endl;
             }
-            std::cout << std::endl;
+            locCount++;
         }
     }
     std::cout << std::endl;
