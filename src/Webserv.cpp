@@ -1,5 +1,5 @@
 #include "../includes/Webserv.hpp"
-#include "../includes/utils.hpp"
+#include "../includes/Utils.hpp"
 
 Webserv::Webserv(ConfigParsing &config) : config(config) {
     this->active = true;

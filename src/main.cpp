@@ -3,7 +3,7 @@
 
 #include "../includes/Webserv.hpp"
 #include "../includes/ConfigParsing.hpp"
-#include "../includes/utils.hpp"
+#include "../includes/Utils.hpp"
 
 Webserv *webserv = NULL;
 
@@ -28,6 +28,8 @@ int main(int argc, char **argv) {
     }
     std::vector<std::string> tokens = config.tokenize(config_file, " \n\t");
     config.parse(tokens);
+    std::vector<ServerConfig *> servers = config.getServers();
+    std::vector<LocationConfig *> locations = config.getLocations();
     std::cout << "Webserver is running :)" << std::endl;
 
     signal(SIGINT, signalHandler);

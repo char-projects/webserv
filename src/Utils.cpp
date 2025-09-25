@@ -1,4 +1,4 @@
-#include "../includes/utils.hpp"
+#include "../includes/Utils.hpp"
 
 void logger(int out, e_message type, const std::string& message) {
     const char* color_reset = "\033[0m";

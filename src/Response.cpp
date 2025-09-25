@@ -1,6 +1,6 @@
 #include "../includes/Response.hpp"
 #include "../includes/Request.hpp"
-#include "../includes/utils.hpp"
+#include "../includes/Utils.hpp"
 
 Response::Response(const int client_fd, const Request& request, const ServerConfig& config)
 	: client_fd(client_fd), request(request), config(config) {

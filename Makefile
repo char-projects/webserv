@@ -1,9 +1,9 @@
 NAME					=	webserv
 
-SRC						=	main.cpp Webserv.cpp Parsing.cpp \
-							LocationConfig.cpp ServerConfig.cpp \
-							Request.cpp Response.cpp utils.cpp \
-							ResponseHeader.cpp
+SRC						=	Cgi.cpp LocationConfig.cpp \
+							main.cpp Parsing.cpp Request.cpp \
+							Response.cpp ResponseHeader.cpp \
+							ServerConfig.cpp Utils.cpp Webserv.cpp \
 
 OBJ 					= 	$(SRC:.cpp=.o)
 OBJ_DIR					=	obj

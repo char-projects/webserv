@@ -13,6 +13,7 @@
 class ConfigParsing {
     private:
         std::vector<ServerConfig *> servers;
+        std::vector<LocationConfig *> locations;
         std::string configFile;
 
     public:
@@ -25,7 +26,10 @@ class ConfigParsing {
         std::vector<std::string> tokenize(const std::string &content, const std::string &delimiters);
         void parse(std::vector<std::string> &tokens);
         void setConfigFile(const std::string &configFile);
+        std::string getConfigFile() const;
         std::vector<ServerConfig *> getServers() const;
+        std::vector<LocationConfig *> getLocations() const;
+        void printConfig() const;
 };
 
 #endif

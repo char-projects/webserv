@@ -1,5 +1,5 @@
 #include "../includes/ResponseHeader.hpp"
-#include "../includes/utils.hpp"
+#include "../includes/Utils.hpp"
 
 ResponseHeader::ResponseHeader() : contentType(""), date(""), server(SERVER_NAME) {}
 
