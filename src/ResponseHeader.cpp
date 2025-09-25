@@ -14,54 +14,50 @@ const std::string ResponseHeader::setContent(size_t status_code) {
 	switch (status_code)
 	{
 		case 200:
-    		args.push_back(contentType);
-    		args.push_back(stringify(contentLength));
+			args.push_back(contentType);
+			args.push_back(stringify(contentLength));
 			content.append(format_string(RESPONSE_200, args));
 			break;
 		case 201:
 			args.push_back(stringify(contentLength));
-    		args.push_back(location);
+			args.push_back(location);
 			content.append(format_string(RESPONSE_201, args));
 			break;
 		case 204:
 			args.push_back(stringify(contentLength));
-    		args.push_back(location);
+			args.push_back(location);
 			content.append(format_string(RESPONSE_204, args));
 			break;
 		case 301:
-    		args.push_back(location);
+			args.push_back(location);
 			content.append(format_string(RESPONSE_301, args));
 			break;
 		case 307:
-    		args.push_back(location);
+			args.push_back(location);
 			content.append(format_string(RESPONSE_307, args));
 			break;
 		case 400:
-    		args.push_back(stringify(contentLength));
+			args.push_back(stringify(contentLength));
 			content.append(format_string(RESPONSE_400, args));
 			break;
 		case 403:
-    		args.push_back(stringify(contentLength));
+			args.push_back(stringify(contentLength));
 			content.append(format_string(RESPONSE_403, args));
 			break;
 		case 404:
-    		args.push_back(stringify(contentLength));
+			args.push_back(stringify(contentLength));
 			content.append(format_string(RESPONSE_404, args));
 			break;
 		case 405:
-    		args.push_back(stringify(contentLength));
+			args.push_back(stringify(contentLength));
 			content.append(format_string(RESPONSE_405, args));
 			break;
 		case 413:
-    		args.push_back(stringify(contentLength));
+			args.push_back(stringify(contentLength));
 			content.append(format_string(RESPONSE_413, args));
 			break;
-		case 500:
-    		args.push_back(stringify(contentLength));
-			content.append(format_string(RESPONSE_500, args));
-			break;
 		default:
-    		args.push_back(stringify(contentLength));
+			args.push_back(stringify(contentLength));
 			content.append(format_string(RESPONSE_500, args));
 			break;
 	}
@@ -118,6 +114,6 @@ void ResponseHeader::setLocation(std::string location) {
 }
 
 const std::string ResponseHeader::getHeader(size_t status_code) {
-    setDate();
+	setDate();
 	return (setContent(status_code));
 }

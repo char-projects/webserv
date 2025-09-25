@@ -14,6 +14,12 @@
 # define RESPONSE_405 "HTTP/1.1 405 Method Not Allowed\r\nContent-Type: text/html\r\nContent-Length: {}\r\nConnection: close\r\n\r\n"
 # define RESPONSE_413 "HTTP/1.1 413 Payload Too Large\r\nContent-Type: text/html\r\nContent-Length: {}\r\nConnection: close\r\n\r\n"
 # define RESPONSE_500 "HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/html\r\nContent-Length: {}\r\nConnection: close\r\n\r\n"
+# define RESPONSE_502 "HTTP/1.1 502 Bad Gateway\r\nContent-Type: text/html\r\nContent-Length: {}\r\nConnection: close\r\n\r\n"
+# define RESPONSE_503 "HTTP/1.1 503 Service Unavailable\r\nContent-Type: text/html\r\nContent-Length: {}\r\nConnection: close\r\n\r\n"
+# define RESPONSE_504 "HTTP/1.1 504 Gateway Timeout\r\nContent-Type: text/html\r\nContent-Length: {}\r\nConnection: close\r\n\r\n"
+# define RESPONSE_520 "HTTP/1.1 520 Web Server Returned an Unknown Error\r\nContent-Type: text/html\r\nContent-Length: {}\r\nConnection: close\r\n\r\n"
+
+
 
 class ResponseHeader {
 

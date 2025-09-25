@@ -3,14 +3,14 @@
 
 Request::Request(int client_fd) {
     this->client_fd = client_fd;
-	status_code = 500;
+	status_code = 200;
 	method = "GET";
 	valid_methods.push_back("GET");
 	valid_methods.push_back("POST");
 	valid_methods.push_back("DELETE");
 	valid_methods.push_back("UNKNOWN");
 	path = "www/index.html";
-    uri = "https://localhost:8080/index.html#something";
+    uri = "http://localhost:8080/";
 	http_version = "";
 	body = "";
     recv_data = "";
@@ -216,11 +216,24 @@ void Request::parseRecvData() {
     oss << status_code;
     logger(STDOUT_FILENO, INFO, "Status Code:\t" + oss.str());
     status_code = 200;
+
+
+
+	// ################ AÑADIDO #########################
+
+	if (headers.count("Transfer-Encoding") && headers["Transfer-Encoding"] == "chunked") {
+		body = decodeChunked(body_content);
+	} else {
+		body = body_content;
+	}
+
+	// ################ AÑADIDO #########################
+
 }
 
 void Request::setRecvData(const std::string& src_recv_data, size_t bytes_read) {
 
-	if (bytes_read <= 0 || bytes_read > BUFFER_SIZE) {
+	if (bytes_read <= 0 || bytes_read > BUFFER_RECV_SIZE) {
 		logger(STDOUT_FILENO, ERROR, "Error reading from client or connection closed");
         status_code = 400;
 		return ;
@@ -235,3 +248,33 @@ void Request::setRecvData(const std::string& src_recv_data, size_t bytes_read) {
 size_t Request::getBytesRecv() const {
 	return (recv_data.size());
 }
+
+
+// ################ AÑADIDO #########################
+
+std::string Request::decodeChunked(const std::string &chunkedBody) {
+	std::istringstream	stream(chunkedBody);
+	std::string			decoded;
+	std::string			line;
+
+	while (std::getline(stream, line)) {
+		if (!line.empty() && line[line.size() - 1] == '\r')
+			line.erase(line.size() - 1);
+
+		std::istringstream hexSize(line);
+		size_t chunkSize = 0;
+		hexSize >> std::hex >> chunkSize;
+
+		if (!chunkSize)
+			break;
+
+		std::vector<char> buffer(chunkSize);
+		stream.read(buffer.data(), chunkSize);
+		decoded.append(buffer.begin(), buffer.end());
+		stream.ignore(2);
+	}
+	return (decoded);
+}
+
+
+// ################ AÑADIDO
