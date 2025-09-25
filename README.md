@@ -113,7 +113,6 @@ RESOURCES:
 ADD:
 
 	en default.conf
-		- allow_methods o methods
 		- upload_path
 		- Validar rango de puertos validos del 0 al 65535.
 		- map<string, string> redirects;
@@ -173,10 +172,6 @@ Content-Disposition: form-data; name="field2"; filename="example.txt"
 
 value2
 
-
-
-	SERVERCONFIG
-		- vector<LocationConfig *> locations;
 
 	LocationConfig.cpp
 		maxBodySize = 0 ---> maxBodySize = MAX_BODY_SIZE

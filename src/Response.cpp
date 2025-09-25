@@ -2,8 +2,8 @@
 #include "../includes/Request.hpp"
 #include "../includes/utils.hpp"
 
-Response::Response(const int client_fd, const Request& request, const ServerConfig& config)
-	: client_fd(client_fd), request(request), config(config) {
+Response::Response(const int client_fd, const Request& request, const ServerConfig& config, const std::vector<LocationConfig*>& locations)
+	: client_fd(client_fd), request(request), config(config), locations(locations) {
 	send_response.clear();
 	send_header.clear();
 	send_body.clear();
@@ -68,40 +68,65 @@ size_t Response::getSize() {
 
 const std::string Response::getPathStatusCode() {
 
-	// ----> ServerConfig server = request.getLocationPath().getErrorPages();
+	std::string error_page_path;
 
+	error_page_path.clear();
+	switch (status_code) {
+		case 201:
+			error_page_path = "";
+			break;
+		case 204:
+			error_page_path = "";
+			break;
+		case 301:
+			error_page_path = "";
+			break;
+		case 307:
+			error_page_path = "";
+			break;
+		case 400:
+			error_page_path = "src/error_pages/400.html";
+			break;
+		case 403:
+			error_page_path = "src/error_pages/403.html";
+			break;
+		case 404:
+			error_page_path = "src/error_pages/404.html";
+			break;
+		case 405:
+			error_page_path = "src/error_pages/405.html";
+			break;
+		case 413:
+			error_page_path = "src/error_pages/413.html";
+			break;
+		case 500:
+			error_page_path = "src/error_pages/500.html";
+			break;
+		case 502:
+			error_page_path = "src/error_pages/502.html";
+			break;
+		case 503:
+			error_page_path = "src/error_pages/503.html";
+			break;
+		case 504:
+			error_page_path = "src/error_pages/504.html";
+			break;
+		case 520:
+			error_page_path = "";
+			break;
+		default:
+			error_page_path = "src/error_pages/500.html";
+	}
 
-	/*
-	std::vector<std::string> pairs = config.getLocations();
-	for (std::vector<std::pair<int, std::string> >::const_iterator it = pairs.begin(); it != pairs.end(); ++it) {
-		for (std::vector<std::pair<int, std::string> >::const_iterator it = pairs.begin(); it != pairs.end(); ++it) {
-			std::cout << "Processing: " << it->first << " - " << it->second << std::endl;
+	std::vector<std::pair<std::string, int> > pairs = config.getErrorPages();
+	for (std::vector<std::pair<std::string, int> >::const_iterator it = pairs.begin(); it != pairs.end(); ++it) {
+		if (it->second == static_cast<int>(status_code)) {
+			error_page_path = it->first;
+			break;
 		}
 	}
-	*/
-
-	// TEMPORAL DELETEME
-
-	switch (status_code) {
-		case 201: return ("");
-		case 204: return ("");
-		case 301: return ("");
-		case 307: return ("");
-		case 400: return ("src/error_pages/400.html");
-		case 403: return ("src/error_pages/403.html");
-		case 404: return ("src/error_pages/404.html");
-		case 405: return ("src/error_pages/405.html");
-		case 413: return ("src/error_pages/413.html");
-		case 500: return ("src/error_pages/500.html");
-		case 502: return ("src/error_pages/502.html");
-		case 503: return ("src/error_pages/503.html");
-		case 504: return ("src/error_pages/504.html");
-		case 520: return ("");
-		default: return ("src/error_pages/500.html");
-	}
-
-	// TEMPORAL DELETEME
 	counter = 0;
+	return (error_page_path);
 }
 
 void Response::readContent(const std::string &path) {
@@ -113,21 +138,10 @@ void Response::readContent(const std::string &path) {
 		return ;
 	}
 
-	/*
-	if (path.empty() || path == "www")
-	{
-		// ----> path = request.location.getRoot() + request.location.getRoot().getIndexFiles
-		//readContent("www/index.html");
-		status_code = 301;
-		response_header->setLocation(path + "/index.html");
-		send_body.clear();
-	}
-	*/
-
 	PathType result = checkPath(path);
 	std::ifstream file;
 	std::stringstream buffer;
-	std::string index_file;
+	std::string index_file = config.getIndexFiles()[0];
 
 	if (result == PATH_IS_DIRECTORY && path[path.size()-1] != '/') {
 		status_code = 301;
@@ -153,48 +167,47 @@ void Response::readContent(const std::string &path) {
 
 		case PATH_IS_DIRECTORY:
 
-			index_file = path + "/index.html";
+			index_file = path + index_file;
 			if (pathIsFile(index_file))
 				readContent(index_file);
-			else
-				ListDirectory(path, request.getUri());
+			else {
+				LocationConfig* loc = findLocation(path);
+				if (loc && loc->getAutoIndex())
+					ListDirectory(path, request.getUri());
+				else {
+					status_code = 403;
+					readContent(getPathStatusCode());
+				}
+			}
 			break;
-
-			// ---->  LocationConfig location = request.getLocationPath(path);
-
-			// if (location != NULL && location.getAutoIndex())
-				//ListDirectory(path, request.getUri());
-			// else {
-			//	status_code = 403;
-			//	readContent(getPathStatusCode());
-			//}
-
-			//break;
 		case PATH_NO_PERMISSION:
-
 			if (status_code != 403) {
 				status_code = 403;
 				readContent(getPathStatusCode());
 			}
 			break;
+
 		case PATH_NOT_EXISTS:
 			if (status_code != 404) {
 				status_code = 404;
 				readContent(getPathStatusCode());
 			}
 			break;
+
 		case PATH_IS_OTHER:
 			if (status_code != 400) {
 				status_code = 400;
 				readContent(getPathStatusCode());
 			}
 			break;
+
 		case PATH_ERROR:
 			if (status_code != 400) {
 				status_code = 400;
 				readContent(getPathStatusCode());
 			}
 			break;
+
 		default:
 			if (status_code != 404) {
 				status_code = 404;
@@ -306,4 +319,16 @@ void Response::ListDirectory(const std::string& path, const std::string& uri) {
 	send_body.clear();
 	send_body.append(listing.str());
 	status_code = 200;
+}
+
+LocationConfig* Response::findLocation(const std::string& path) {
+	LocationConfig* matching_location = NULL;
+
+	for (std::vector<LocationConfig *>::const_iterator it = locations.begin(); it != locations.end(); ++it) {
+		if (request.getPath() == path) {
+			matching_location = *it;
+			break;
+		}
+	}
+	return (matching_location);
 }

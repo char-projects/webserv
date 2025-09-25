@@ -9,7 +9,11 @@ class ServerConfig {
     private:
         std::string host;
         std::vector<int> ports;      
-        std::vector<std::string> locations;
+        std::string root;
+        std::vector<std::pair<std::string, int> > errorPages;
+        std::vector<std::string> indexFiles;
+        size_t maxBodySize;
+        std::vector<std::string> methods;
 
     public:
         ServerConfig();
@@ -21,8 +25,16 @@ class ServerConfig {
         void setHost(const std::string &host);
         std::vector<int> getPorts() const;
         void setPorts(int port);
-        std::vector<std::string> getLocations() const;
-        void addLocation(const std::string &location);
+        std::string getRoot() const;
+        void setRoot(const std::string &root);
+        std::vector<std::pair<std::string, int> > getErrorPages() const;
+        void addErrorPage(const std::string &errorPage, int errorCode);
+        std::vector<std::string> getIndexFiles() const;
+        void addIndexFile(const std::string &indexFile);
+        size_t getMaxBodySize() const;
+        void setMaxBodySize(size_t maxBodySize);
+        std::vector<std::string> getMethods() const;
+        void setMethods(const std::vector<std::string> &methods);
 };
 
 #endif

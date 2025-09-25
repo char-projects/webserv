@@ -55,15 +55,15 @@ void Webserv::initializePorts() {
 				throw std::runtime_error("Error setting socket non-blocking " + stringify(ntohs(server_addr.sin_port)));
 
 			fds_sockets[fd_socket] = *it;
-			logger(STDOUT_FILENO, INFO, "Listening at the port " + stringify(*it2));
+			logger(STDOUT_FILENO, INFO, (*it)->getHost() + " Listening at the port " + stringify(*it2));
 		}
 	}
 }
 
 int Webserv::initializeSelect(fd_set &read_fds, fd_set &write_fds) {
-	int max_fd = 0;
-	int client_fd;
-	struct timeval timeout = {5, 0};
+	int				max_fd = 0;
+	int				client_fd;
+	struct timeval	timeout = {5, 0};
 	FD_ZERO(&read_fds);
 	FD_ZERO(&write_fds);
 
@@ -99,13 +99,21 @@ void Webserv::handleConnections(fd_set &read_fds) {
 				continue ;
 			}
 
-			fds_clients.push_back(client_fd);
-			clients_state[client_fd] = ClientState();
-			clients_state[client_fd].request = new Request(client_fd);
-			clients_state[client_fd].response = new Response(client_fd, *clients_state[client_fd].request, *it->second);
-			clients_state[client_fd].last_activity = time(NULL);
-			clients_state[client_fd].ready_to_read = true;
-			logger(STDOUT_FILENO, INFO, "New client connected in port " + stringify(client_fd));
+			std::map<ServerConfig *, std::vector<LocationConfig* > > map_loc = config.getLocations();
+  			std::map<ServerConfig *, std::vector<LocationConfig* > >::iterator loc;
+			loc = map_loc.find((*it).second);
+			if (loc != map_loc.end())
+			{
+				fds_clients.push_back(client_fd);
+				clients_state[client_fd] = ClientState();
+				clients_state[client_fd].request = new Request(client_fd);
+				clients_state[client_fd].response = new Response(client_fd, *clients_state[client_fd].request, *it->second, loc->second);
+				clients_state[client_fd].last_activity = time(NULL);
+				clients_state[client_fd].ready_to_read = true;
+				logger(STDOUT_FILENO, INFO, "New client connected in port " + stringify(client_fd));
+			} else {
+				logger(STDOUT_FILENO, ERROR, "New client no connected in port " + stringify(client_fd));
+			}
 		}
 	}
 }
@@ -120,7 +128,6 @@ void Webserv::clientRequest(int client_fd, bool &close_connection) {
 	} else {
 		clients_state[client_fd].ready_to_read = false;
 		clients_state[client_fd].request->setRecvData(buffer.data(), bytes_read);
-		// PARSE REQUES AND ...... PERO OJO Con request multiples
 		clients_state[client_fd].ready_to_write = true;
 	}
 }
