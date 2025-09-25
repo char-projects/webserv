@@ -30,8 +30,6 @@ int main(int argc, char **argv) {
     config.parse(tokens);
     std::vector<ServerConfig *> servers = config.getServers();
     std::vector<LocationConfig *> locations = config.getLocations();
-    std::cout << "Webserver is running :)" << std::endl;
-
     signal(SIGINT, signalHandler);
 
 	try {

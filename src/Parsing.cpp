@@ -43,6 +43,9 @@ bool ConfigParsing::isFileReadable(const std::string &filePath) {
     struct stat s;
     if (stat(filePath.c_str(), &s) == 0 && S_ISDIR(s.st_mode))
         return false;
+    // Check if the file ends with .conf
+    if (filePath.size() < 5 || filePath.substr(filePath.size() - 5) != ".conf")
+        return false;
     return file.good();
 }
 

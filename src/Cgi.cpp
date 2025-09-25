@@ -2,8 +2,7 @@
 #include "../includes/Utils.hpp"
 
 /*
-Execution of CGI, based on file extension (for example .php). Here are some
-specific remarks regarding CGIs:
+Execution of CGI, based on file extension (for example .php)
 ∗ Have a careful look at the environment variables involved in the web
 server-CGI communication. The full request and arguments provided by
 the client must be available to the CGI.
