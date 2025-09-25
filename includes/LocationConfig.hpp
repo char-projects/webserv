@@ -15,6 +15,8 @@ class LocationConfig {
         std::string fastcgiPass;
         std::string fastcgiIndex;
         std::vector<std::pair<std::string, std::string> > fastcgiParams;
+        bool cgiEnabled;
+	    std::vector<std::pair<std::string, std::string> > cgi;
 
     public:
         LocationConfig();
@@ -38,6 +40,10 @@ class LocationConfig {
         void setFastcgiIndex(const std::string &fastcgiIndex);
         std::vector<std::pair<std::string, std::string> > getFastcgiParams() const;
         void addFastcgiParam(const std::string &param, const std::string &value);
+        bool getCgiEnabled() const;
+        void setCgiEnabled(bool enabled);
+        std::vector<std::pair<std::string, std::string> > getCgi() const;
+        void addCgi(const std::string &extension, const std::string &interpreter);
 };
 
 #endif

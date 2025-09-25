@@ -1,6 +1,21 @@
 #include "../includes/Cgi.hpp"
 #include "../includes/Utils.hpp"
 
+/*
+Execution of CGI, based on file extension (for example .php). Here are some
+specific remarks regarding CGIs:
+∗ Have a careful look at the environment variables involved in the web
+server-CGI communication. The full request and arguments provided by
+the client must be available to the CGI.
+∗ Just remember that, for chunked requests, your server needs to un-chunk
+them, the CGI will expect EOF as the end of the body.
+∗ The same applies to the output of the CGI. If no content_length is
+returned from the CGI, EOF will mark the end of the returned data.
+∗ The CGI should be run in the correct directory for relative path file access.
+∗ Your server should support at least one CGI (php-CGI, Python, and so
+forth).
+*/
+
 Cgi::Cgi(const std::string &scriptPath, const std::map<std::string, std::string> &env)
     : scriptPath(scriptPath), env(env), output(""), status(0) {}
 

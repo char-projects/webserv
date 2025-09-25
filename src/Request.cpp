@@ -10,7 +10,7 @@ Request::Request(int client_fd) {
 	valid_methods.push_back("DELETE");
 	valid_methods.push_back("UNKNOWN");
 	path = "www/index.html";
-    uri = "https://localhost:8080/index.html#something";
+    uri = "http://localhost:8080";
 	http_version = "";
 	body = "";
     recv_data = "";

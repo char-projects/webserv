@@ -202,6 +202,27 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                                     // }
                                     i++;
                                 }
+                            } else if (tokens[i] == "cgi_enabled") {
+                                if (i + 1 < tokens.size()) {
+                                    if (tokens[i + 1] == "on")
+                                        location->setCgiEnabled(true);
+                                    else if (tokens[i + 1] == "off")
+                                        location->setCgiEnabled(false);
+                                    else
+                                        std::cerr << "Error: Invalid value for cgi_enabled" << std::endl;
+                                    i += 2;
+                                } else {
+                                    std::cerr << "Error: Expected 'on' or 'off' after 'cgi_enabled'" << std::endl;
+                                    i++;
+                                }
+                            } else if (tokens[i] == "cgi") {
+                                if (i + 2 < tokens.size()) {
+                                    location->addCgi(tokens[i + 1], tokens[i + 2]);
+                                    i += 3;
+                                } else {
+                                    std::cerr << "Error: Expected extension and interpreter after 'cgi'" << std::endl;
+                                    i++;
+                                }
                             } else if (tokens[i] == "include") {
                                 if (i + 1 < tokens.size()) {
                                     location->addCgiInclude(tokens[i + 1]);
@@ -247,7 +268,6 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                         i++;
                     }
                 } else {
-                    std::cerr << "Unknown directive: " << tokens[i] << std::endl;
                     i++;
                 }
             }
@@ -320,6 +340,17 @@ void ConfigParsing::printConfig() const {
             for (size_t j = 0; j < tryFiles.size(); j++) {
                 std::cout << tryFiles[j];
                 if (j < tryFiles.size() - 1)
+                    std::cout << ", ";
+            }
+            std::cout << std::endl;
+        }
+        std::cout << "  CGI Enabled: " << (locations[i]->getCgiEnabled() ? "on" : "off") << std::endl;
+        if (!locations[i]->getCgi().empty()) {
+            std::cout << "  CGI: ";
+            std::vector<std::pair<std::string, std::string> > cgi = locations[i]->getCgi();
+            for (size_t j = 0; j < cgi.size(); j++) {
+                std::cout << cgi[j].first << "->" << cgi[j].second;
+                if (j < cgi.size() - 1)
                     std::cout << ", ";
             }
             std::cout << std::endl;

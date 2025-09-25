@@ -6,12 +6,9 @@ Webserv::Webserv(ConfigParsing &config) : config(config) {
     this->fds_sockets = std::map<int, ServerConfig*>();
     this->fds_clients = std::vector<int>();
     this->clients_state = std::map<int, ClientState>();
-    logger(STDOUT_FILENO, DEBUG, "Constructor Webserv called");
 }
 
 Webserv::~Webserv() {
-	logger(STDOUT_FILENO, DEBUG, "Destructor Webserv called");
-
 	for (std::map<int, ClientState>::iterator it = clients_state.begin(); it != clients_state.end(); ++it) {
 		delete it->second.request;
 		delete it->second.response;
@@ -29,7 +26,6 @@ void Webserv::initializePorts() {
 	int opt = 1;
 	int flags;
 
-	logger(STDOUT_FILENO, INFO, "Initializing listening ports");
 	const std::vector<ServerConfig*> servers = config.getServers();
 	for (std::vector<ServerConfig*>::const_iterator it = servers.begin(); it != servers.end(); ++it) {
 

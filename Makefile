@@ -5,6 +5,10 @@ SRC						=	Cgi.cpp LocationConfig.cpp \
 							Response.cpp ResponseHeader.cpp \
 							ServerConfig.cpp Utils.cpp Webserv.cpp \
 
+GREEN					=	\033[0;32m
+RED						=	\033[0;31m
+NO_COLOR				=	\033[0m
+
 OBJ 					= 	$(SRC:.cpp=.o)
 OBJ_DIR					=	obj
 OBJ_FILES				=	$(addprefix $(OBJ_DIR)/, $(OBJ))
@@ -13,21 +17,22 @@ CFLAGS					=	-g -fsanitize=address -Werror -Wextra -Wall -std=c++98
 
 $(OBJ_DIR)/%.o			: 	src/%.cpp
 							@mkdir -p $(OBJ_DIR)
-							c++ $(CFLAGS) -c $< -o $@
+							@c++ $(CFLAGS) -c $< -o $@
 
 all						:	$(NAME)
+							@echo "$(GREEN)Starting webserver...$(NO_COLOR)"
 
 $(NAME)					:	$(OBJ_FILES)
 							@mkdir -p $(OBJ_DIR)
-							c++ $(CFLAGS) -o $(NAME) $(OBJ_FILES)
+							@c++ $(CFLAGS) -o $(NAME) $(OBJ_FILES)
 
 clean					:
-							rm -rf $(OBJ_DIR)
+							@rm -rf $(OBJ_DIR)
 
 fclean					:	clean
-							rm -rf $(NAME)
+							@rm -rf $(NAME)
+							@echo "$(RED)Webserver stopped$(NO_COLOR)"
 
 re						:	fclean all
 
 .PHONY					:	all clean fclean re
--include $(D_FILES)

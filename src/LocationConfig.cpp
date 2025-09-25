@@ -9,6 +9,8 @@ LocationConfig::LocationConfig() {
     fastcgiPass = "";
     fastcgiIndex = "";
     fastcgiParams.clear();
+    cgiEnabled = false;
+    cgi.clear();
 }
 
 LocationConfig::LocationConfig(const LocationConfig &other) {
@@ -25,6 +27,8 @@ LocationConfig &LocationConfig::operator=(const LocationConfig &other) {
         this->fastcgiPass = other.fastcgiPass;
         this->fastcgiIndex = other.fastcgiIndex;
         this->fastcgiParams = other.fastcgiParams;
+        this->cgiEnabled = other.cgiEnabled;
+        this->cgi = other.cgi;
     }
     return *this;
 }
@@ -98,4 +102,20 @@ std::vector<std::pair<std::string, std::string> > LocationConfig::getFastcgiPara
 
 void LocationConfig::addFastcgiParam(const std::string &param, const std::string &value) {
     fastcgiParams.push_back(std::make_pair(param, value));
+}
+
+bool LocationConfig::getCgiEnabled() const {
+    return cgiEnabled;
+}
+
+void LocationConfig::setCgiEnabled(bool enabled) {
+    this->cgiEnabled = enabled;
+}
+
+std::vector<std::pair<std::string, std::string> > LocationConfig::getCgi() const {
+    return cgi;
+}
+
+void LocationConfig::addCgi(const std::string &extension, const std::string &interpreter) {
+    cgi.push_back(std::make_pair(extension, interpreter));
 }
