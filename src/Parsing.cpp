@@ -112,6 +112,11 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                     size_t j = i + 1;
                     while (j < tokens.size() && isdigit(tokens[j][0])) {
                         int port = atoi(tokens[j].c_str());
+                        if (port <= 0 || port > 65535) {
+                            std::cerr << "Error: Invalid port number " << tokens[j] << std::endl;
+                            j++;
+                            continue;
+                        }
                         server->setPorts(port);
                         j++;
                     }

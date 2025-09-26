@@ -3,7 +3,7 @@
 
 Request::Request(int client_fd) {
     this->client_fd = client_fd;
-	status_code = 500;
+	status_code = 200;
 	method = "GET";
 	valid_methods.push_back("GET");
 	valid_methods.push_back("POST");
@@ -234,4 +234,12 @@ void Request::setRecvData(const std::string& src_recv_data, size_t bytes_read) {
 
 size_t Request::getBytesRecv() const {
 	return (recv_data.size());
+}
+
+std::map<std::string, std::string> Request::getParameters() const {
+    return parameters;
+}
+
+std::map<std::string, std::string> Request::getHeaders() const {
+    return headers;
 }
