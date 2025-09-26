@@ -195,6 +195,15 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                                     std::cerr << "Error: Expected 'on' or 'off' after 'autoindex'" << std::endl;
                                     i++;
                                 }
+                            } else if (tokens[i] == "return") {
+                                if (i + 2 < tokens.size() && isdigit(tokens[i + 1][0]) 
+                                    && tokens[i + 1].size() == 3 && tokens[i + 1][0] == '3') {
+                                    location->addRedirect(location->getLocationPath(), tokens[i + 2]);
+                                    i += 3;
+                                } else {
+                                    std::cerr << "Error: Expected return code and path after 'return'" << std::endl;
+                                    i++;
+                                }
                             } else if (tokens[i] == "try_files") {
                                 i++;
                                 while (i < tokens.size() && tokens[i] != "}") {
@@ -345,6 +354,16 @@ void ConfigParsing::printConfig() const {
             if (!it->second[i]->getLocationPath().empty())
                 std::cout << "  Path: " << it->second[i]->getLocationPath() << std::endl;
             std::cout << "  AutoIndex: " << (it->second[i]->getAutoIndex() ? "on" : "off") << std::endl;
+            if (!it->second[i]->getRedirects().empty()) {
+                std::cout << "  Redirects: ";
+                std::vector<std::pair<std::string, std::string> > redirects = it->second[i]->getRedirects();
+                for (size_t j = 0; j < redirects.size(); j++) {
+                    std::cout << redirects[j].first << "->" << redirects[j].second;
+                    if (j < redirects.size() - 1)
+                        std::cout << ", ";
+                }
+                std::cout << std::endl;
+            }
             if (!it->second[i]->getTryFiles().empty()) {
                 std::cout << "  Try Files: ";
                 std::vector<std::string> tryFiles = it->second[i]->getTryFiles();
