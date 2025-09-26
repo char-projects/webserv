@@ -48,6 +48,7 @@ class Request {
 		ssize_t getStatusCode() const;
 		void setUri(const std::string &uri);
 		std::string getUri() const;
+		std::string decodeChunked(const std::string &chunkedBody);
 		std::map<std::string, std::string> getParameters() const;
 		std::map<std::string, std::string> getHeaders() const;
 };

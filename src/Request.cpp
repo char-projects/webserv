@@ -216,6 +216,11 @@ void Request::parseRecvData() {
     oss << status_code;
     logger(STDOUT_FILENO, INFO, "Status Code:\t" + oss.str());
     status_code = 200;
+    if (headers.count("Transfer-Encoding") && headers["Transfer-Encoding"] == "chunked") {
+		body = decodeChunked(body_content);
+	} else {
+		body = body_content;
+	}
 }
 
 void Request::setRecvData(const std::string& src_recv_data, size_t bytes_read) {
@@ -230,6 +235,30 @@ void Request::setRecvData(const std::string& src_recv_data, size_t bytes_read) {
 
 	logger(STDOUT_FILENO, SUCCESS, recv_data);
 	parseRecvData();
+}
+
+std::string Request::decodeChunked(const std::string &chunkedBody) {
+	std::istringstream	stream(chunkedBody);
+	std::string			decoded;
+	std::string			line;
+
+	while (std::getline(stream, line)) {
+		if (!line.empty() && line[line.size() - 1] == '\r')
+			line.erase(line.size() - 1);
+
+		std::istringstream hexSize(line);
+		size_t chunkSize = 0;
+		hexSize >> std::hex >> chunkSize;
+
+		if (!chunkSize)
+			break;
+
+		std::vector<char> buffer(chunkSize);
+		stream.read(buffer.data(), chunkSize);
+		decoded.append(buffer.begin(), buffer.end());
+		stream.ignore(2);
+	}
+	return (decoded);
 }
 
 size_t Request::getBytesRecv() const {

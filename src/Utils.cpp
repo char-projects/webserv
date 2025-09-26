@@ -68,22 +68,6 @@ std::string format_string(const std::string& format, const std::vector<std::stri
 	return result;
 }
 
-bool	pathIsFile(const std::string& path)
-{
-	struct stat s;
-	if (stat(path.c_str(), &s) == 0 )
-	{
-		if (s.st_mode & S_IFDIR)
-			return 0;
-		else if (s.st_mode & S_IFREG)
-			return 1;
-		else
-			return 0;
-	}
-	else
-		return 0;
-}
-
 std::string trim(const std::string& str) {
     size_t first = str.find_first_not_of(" \t\n\r");
     if (first == std::string::npos) {
@@ -91,4 +75,53 @@ std::string trim(const std::string& str) {
     }
     size_t last = str.find_last_not_of(" \t\n\r");
     return str.substr(first, last - first + 1);
+}
+
+PathType checkPath(const std::string& path) {
+	struct stat s;
+
+	if (stat(path.c_str(), &s)) {
+		struct stat s2;
+		if (!lstat(path.c_str(), &s2)) {
+			return (PATH_NO_PERMISSION);
+		} else {
+			if (errno == ENOENT)
+				return (PATH_NOT_EXISTS);
+			else if (errno == EACCES)
+				return (PATH_NO_PERMISSION);
+			else
+				return (PATH_ERROR);
+		}
+	}
+
+	if (S_ISREG(s.st_mode))
+		return (PATH_IS_FILE);
+	else if (S_ISDIR(s.st_mode))
+		return (PATH_IS_DIRECTORY);
+	else
+		return (PATH_IS_OTHER);
+}
+
+bool pathIsFile(const std::string& path) {
+	return (checkPath(path) == (PATH_IS_FILE));
+}
+
+
+bool pathIsDirectory(const std::string& path) {
+	return (checkPath(path) == (PATH_IS_DIRECTORY));
+}
+
+bool pathExists(const std::string& path) {
+	PathType result = checkPath(path);
+	return (result == PATH_IS_FILE ||
+			result == PATH_IS_DIRECTORY ||
+			result == PATH_IS_OTHER ||
+			result == PATH_NO_PERMISSION);
+}
+
+bool pathIsAccessible(const std::string& path) {
+	PathType result = checkPath(path);
+	return (result == PATH_IS_FILE ||
+			result == PATH_IS_DIRECTORY ||
+			result == PATH_IS_OTHER);
 }
