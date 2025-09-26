@@ -455,6 +455,34 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Add upload button functionality
+    const uploadButton = document.querySelector('.cta-button');
+    if (uploadButton) {
+        uploadButton.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.multiple = true;
+            input.click();
+            // Add parsing to check for file extensions later on !!!
+            input.addEventListener('change', (event) => {
+                const files = event.target.files;
+                const formData = new FormData();
+                for (let i = 0; i < files.length; i++) {
+                    formData.append('files[]', files[i]);
+                }
+                fetch('/upload', { method: 'POST', body: formData }).then(response => {
+                    if (response.ok) {
+                        alert('Upload successful!');
+                    } else {
+                        alert('Upload failed.');
+                    }
+                }).catch(() => {
+                    alert('Upload failed.');
+                });
+            });
+        });
+    }
+
     // Add ripple animation CSS
     const rippleStyle = document.createElement('style');
     rippleStyle.textContent = `
