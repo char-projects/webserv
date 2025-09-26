@@ -143,14 +143,16 @@ void Response::readContent(const std::string &path) {
 	std::stringstream buffer;
 	std::string index_file = config.getIndexFiles()[0];
 
-/*
-	if (result == PATH_IS_DIRECTORY && path[path.size()-1] != '/') {
+
+	//  || (result == PATH_IS_DIRECTORY && path[path.size()-1] != '/')
+
+	if (path.empty()) {
 		status_code = 301;
-		response_header->setLocation(path + "/");
+		response_header->setLocation("/index.html");
 		send_body.clear();
 		return ;
 	}
-*/
+
 	switch (result) {
 		case PATH_IS_FILE:
 			file.open(path.c_str(), std::ifstream::in);
@@ -183,6 +185,7 @@ void Response::readContent(const std::string &path) {
 					status_code = 403;
 					readContent(getPathStatusCode());
 				}*/
+			
 			
 			break;
 		case PATH_NO_PERMISSION:
