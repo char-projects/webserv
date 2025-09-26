@@ -143,13 +143,14 @@ void Response::readContent(const std::string &path) {
 	std::stringstream buffer;
 	std::string index_file = config.getIndexFiles()[0];
 
+/*
 	if (result == PATH_IS_DIRECTORY && path[path.size()-1] != '/') {
 		status_code = 301;
 		response_header->setLocation(path + "/");
 		send_body.clear();
 		return ;
 	}
-
+*/
 	switch (result) {
 		case PATH_IS_FILE:
 			file.open(path.c_str(), std::ifstream::in);
@@ -167,18 +168,22 @@ void Response::readContent(const std::string &path) {
 
 		case PATH_IS_DIRECTORY:
 
+			ListDirectory(path, request.getUri());
+/*
 			index_file = path + index_file;
 			if (pathIsFile(index_file))
 				readContent(index_file);
 			else {
+				ListDirectory(path, request.getUri()); // TODO
+	
 				LocationConfig* loc = findLocation(path);
 				if (loc && loc->getAutoIndex())
 					ListDirectory(path, request.getUri());
 				else {
 					status_code = 403;
 					readContent(getPathStatusCode());
-				}
-			}
+				}*/
+			
 			break;
 		case PATH_NO_PERMISSION:
 			if (status_code != 403) {
@@ -282,11 +287,10 @@ void Response::ListDirectory(const std::string& path, const std::string& uri) {
 
    	std::string str = path;
 
-	std::string to_remove = "www/";
-	size_t pos = str.find(to_remove);
-	if (pos != std::string::npos)
-		str.erase(pos, to_remove.length());
+	//std::string to_remove = "www/";
+	/* TODO
 
+	*/
 	if (uri != "/") {
 		size_t last_slash = uri.find_last_of('/');
 		std::string parent_uri = (last_slash > 0) ? uri.substr(0, last_slash) : "/";
@@ -299,7 +303,7 @@ void Response::ListDirectory(const std::string& path, const std::string& uri) {
 			std::string file_uri = uri;
 			if (file_uri[file_uri.length() - 1] != '/')
 				file_uri += "/";
-			file_uri += str + name;
+			file_uri +=  name;
 
 			std::string full_path = str;
 			if (full_path[full_path.length() - 1] != '/')
@@ -310,6 +314,11 @@ void Response::ListDirectory(const std::string& path, const std::string& uri) {
 			if (pathIsDirectory(full_path))
 				display_name += "/";
 
+/*
+			size_t pos = file_uri.find(to_remove);
+			if (pos != std::string::npos)
+				file_uri.erase(pos, to_remove.length());
+*/
 			listing << "<li><a href=\"" << file_uri << "\">" << display_name << "</a></li>";
 		}
 	}

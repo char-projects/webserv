@@ -9,8 +9,8 @@ Request::Request(int client_fd) {
 	valid_methods.push_back("POST");
 	valid_methods.push_back("DELETE");
 	valid_methods.push_back("UNKNOWN");
-	path = "www/index.html";
-    uri = "http://localhost:8080/";
+	path = "index.html";
+    uri = "http://localhost:8080";
 	http_version = "";
 	body = "";
     recv_data = "";
@@ -178,7 +178,7 @@ void Request::parseRecvData() {
     http_version = http_version_local;
     path = "www" + clean_uri;
     if (clean_uri == "/")
-        path = "www";
+        path = "www/";
 
     // Parse headers
     while (std::getline(request_stream, line) && line != "\r") {
@@ -219,6 +219,7 @@ void Request::parseRecvData() {
 
 
 
+
 	// ################ AÑADIDO #########################
 
 	if (headers.count("Transfer-Encoding") && headers["Transfer-Encoding"] == "chunked") {
@@ -228,6 +229,7 @@ void Request::parseRecvData() {
 	}
 
 	// ################ AÑADIDO #########################
+
 
 }
 
@@ -244,6 +246,7 @@ void Request::setRecvData(const std::string& src_recv_data, size_t bytes_read) {
 	logger(STDOUT_FILENO, SUCCESS, recv_data);
 	parseRecvData();
 }
+
 
 size_t Request::getBytesRecv() const {
 	return (recv_data.size());

@@ -49,8 +49,6 @@ class Request {
 		void setUri(const std::string &uri);
 		std::string getUri() const;
 
-
-
 		// ################ AÑADIDO #########################
 		std::string decodeChunked(const std::string &chunkedBody);
 };
