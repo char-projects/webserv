@@ -1,5 +1,5 @@
 #include "../includes/Cgi.hpp"
-#include "../includes/Utils.hpp"
+#include "../includes/utils.hpp"
 
 /*
 Execution of CGI, based on file extension (for example .php)

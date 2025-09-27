@@ -24,11 +24,13 @@
 # include "ConfigParsing.hpp"
 # include "ServerConfig.hpp"
 
-# define SERVER_NAME "Webserv/42.0"
-# define BUFFER_SIZE 1024
+# define SERVER_NAME		"Webserv/42.0"
+# define BUFFER_RECV_SIZE	8192
+# define MAX_BODY_SIZE		1024
 
 class Request;
 class Response;
+class ConfigParsing;
 
 struct ClientState {
 	bool			ready_to_read;
@@ -69,19 +71,3 @@ class Webserv {
 };
 
 #endif
-
-/*
-
-TODO:
-
-- [ ] Controlar que todo el mensaje a llegado cuando está fragmentado
-- [ ] Validar rango de puertos validos
-- [ ] Limpiar estructura addr antes de configurar
-- [ ] HTTP/1.1 keep-alive OJO!!!! leer cabecera request
-- [ ] BUFFER_SIZE no debe ser un tamaño fijo??, leer cabecera request
-- [ ] Hacer la parte "NULL" de excepciones del select (select(max_fd + 1, &read_fds, &write_fds, NULL, &timeout);)
-
-TOSEE:
-- [ ] NULL (bloqueo indefinido)
-
-*/

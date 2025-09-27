@@ -1,9 +1,9 @@
 #include "../includes/Response.hpp"
 #include "../includes/Request.hpp"
-#include "../includes/Utils.hpp"
+#include "../includes/utils.hpp"
 
-Response::Response(const int client_fd, const Request& request, const ServerConfig& config)
-	: client_fd(client_fd), request(request), config(config) {
+Response::Response(const int client_fd, const Request& request, const ServerConfig& config, const std::vector<LocationConfig*>& locations)
+	: client_fd(client_fd), request(request), config(config), locations(locations) {
 	send_response.clear();
 	send_header.clear();
 	send_body.clear();
@@ -18,15 +18,20 @@ Response::~Response() {
 }
 
 const char* Response::getResponse() {
+	e_message log_type = SUCCESS;
+
 	status_code = request.getStatusCode();
-	logger(STDOUT_FILENO, DEBUG, "Processing request - Method: " + request.getMethod() + ", Path: " + request.getPath() + ", Status: " + stringify(status_code));
+	logger(STDOUT_FILENO, SUCCESS, "Host: " + config.getHost() +
+		" Request: " + request.getMethod() + " " + request.getPath() + " " +
+		request.getHttpVersion() + " " + stringify(status_code));
+
+	// ----> CGI logger(STDOUT_FILENO, SUCCESS, "Params: " + request.getParams();
 
 	if (status_code == 200) {
-		if (request.getMethod() == "GET") {
+		if (request.getMethod() == "GET" || request.getMethod() == "HEAD") {
 			readContent(request.getPath());
 		} else if (request.getMethod() == "POST") {
-			status_code = 501; // TODOOOOO
-			readContent(getPathStatusCode());
+			writeContent(request.getPath(), request.getBody());
 		} else if (request.getMethod() == "DELETE") {
 			deleteContent(request.getPath());
 		} else {
@@ -37,15 +42,21 @@ const char* Response::getResponse() {
 		readContent(getPathStatusCode());
 	}
 
-	logger(STDOUT_FILENO, DEBUG, "Body size before headers: " + stringify(send_body.size()));
 	response_header->setContentLength(send_body.size());
 	response_header->setContentType(request.getPath());
 	send_header = response_header->getHeader(status_code);
 	send_response.clear();
 	send_response.append(send_header);
-	send_response.append(send_body);
-	logger(STDOUT_FILENO, DEBUG, "Final response size: " + stringify(send_response.size()));
-	logger(STDOUT_FILENO, DEBUG, "Headers:\n" + send_header);
+	if (request.getMethod() != "HEAD")
+		send_response.append(send_body);
+
+	if (status_code > 299 && request.getMethod() != "HEAD")
+		log_type = ERROR;
+
+	logger(STDOUT_FILENO, log_type, "Host: " + config.getHost() +
+		" Response: " + request.getMethod() + " " + request.getPath() + " " +
+		request.getHttpVersion() + " " + stringify(status_code) + " Size: " +
+		stringify(send_body.size()) + "bytes");
 
 	return (send_response.data());
 }
@@ -56,76 +67,182 @@ size_t Response::getSize() {
 
 const std::string Response::getPathStatusCode() {
 
+	std::string error_page_path;
 
+	error_page_path.clear();
+	switch (status_code) {
+		case 201:
+			error_page_path = "";
+			break;
+		case 204:
+			error_page_path = "";
+			break;
+		case 301:
+			error_page_path = "";
+			break;
+		case 307:
+			error_page_path = "";
+			break;
+		case 400:
+			error_page_path = "src/error_pages/400.html";
+			break;
+		case 403:
+			error_page_path = "src/error_pages/403.html";
+			break;
+		case 404:
+			error_page_path = "src/error_pages/404.html";
+			break;
+		case 405:
+			error_page_path = "src/error_pages/405.html";
+			break;
+		case 413:
+			error_page_path = "src/error_pages/413.html";
+			break;
+		case 500:
+			error_page_path = "src/error_pages/500.html";
+			break;
+		case 502:
+			error_page_path = "src/error_pages/502.html";
+			break;
+		case 503:
+			error_page_path = "src/error_pages/503.html";
+			break;
+		case 504:
+			error_page_path = "src/error_pages/504.html";
+			break;
+		case 520:
+			error_page_path = "";
+			break;
+		default:
+			error_page_path = "src/error_pages/500.html";
+	}
 
-
-	/*
-	std::vector<std::string> pairs = config.getLocations();
-	for (std::vector<std::pair<int, std::string> >::const_iterator it = pairs.begin(); it != pairs.end(); ++it) {
-		for (std::vector<std::pair<int, std::string> >::const_iterator it = pairs.begin(); it != pairs.end(); ++it) {
-			std::cout << "Processing: " << it->first << " - " << it->second << std::endl;
+	std::vector<std::pair<std::string, int> > pairs = config.getErrorPages();
+	for (std::vector<std::pair<std::string, int> >::const_iterator it = pairs.begin(); it != pairs.end(); ++it) {
+		if (it->second == static_cast<int>(status_code)) {
+			error_page_path = it->first;
+			break;
 		}
 	}
-	*/
-
-	// TEMPORAL DELETEME
-
-	switch (status_code) {
-		case 200: return "";
-		case 201: return "";
-		case 204: return "";
-		case 301: return "error_pages/301.html";
-		case 400: return "error_pages/400.html";
-		case 403: return "error_pages/403.html";
-		case 404: return "error_pages/404.html";
-		case 405: return "error_pages/405.html";
-		case 413: return "error_pages/413.html";
-		case 500: return "error_pages/500.html";
-		default: return "error_pages/500.html";
-	}
-
-	// TEMPORAL DELETEME
+	counter = 0;
+	return (error_page_path);
 }
 
 void Response::readContent(const std::string &path) {
-	std::ifstream file;
-	std::stringstream buffer;
 
-	if (++counter > 2 || path.empty()) {
+	if (++counter > 2) {
 		status_code = 500;
 		send_body.clear();
 		send_body = MESSAGE_LOOP;
 		return ;
 	}
 
-	if (pathIsFile(path)) {
-		file.open(path.c_str(), std::ifstream::in);
-		if (!file.is_open()) {
-			status_code = 403;
-			readContent(getPathStatusCode());
-			logger(STDOUT_FILENO, ERROR, "Cannot open file: " + path);
+	std::string request_uri = request.getUri();
+	LocationConfig* loc =  findLocation(request.getUri());
+
+	if (loc && !loc->getRedirects().empty()) {
+		std::vector<std::pair<std::string, std::string> > redirects = loc->getRedirects();
+		if (!redirects.empty()) {
+			status_code = 301;
+			response_header->setLocation(redirects[0].second);
+			send_body.clear();
 			return ;
 		}
-		buffer << file.rdbuf();
+	}
+
+	PathType result = checkPath(path);
+	std::ifstream file;
+	std::stringstream buffer;
+	std::string index_file;
+
+	if (result == PATH_IS_DIRECTORY && path[path.size()-1] != '/') {
+		status_code = 301;
+		response_header->setLocation(request.getUri() + "/");
 		send_body.clear();
-		send_body = buffer.str();
-		file.close();
-		logger(STDOUT_FILENO, DEBUG, "File content loaded, size: " + stringify(send_body.size()));
-	} else {
-		struct stat s;
-		if (stat(path.c_str(), &s) == 0 && S_ISDIR(s.st_mode)) {
-			ListDirectory(path, request.getUri());
-		} else {
-			status_code = 404;
-			readContent(getPathStatusCode());
-		}
+		return ;
+	}
+
+	switch (result) {
+		case PATH_IS_FILE:
+			file.open(path.c_str(), std::ifstream::in);
+			if (!file.is_open()) {
+				status_code = 403;
+				readContent(getPathStatusCode());
+				logger(STDOUT_FILENO, ERROR, "Cannot open file: " + path);
+				return ;
+			}
+			buffer << file.rdbuf();
+			send_body.clear();
+			send_body = buffer.str();
+			file.close();
+			break;
+
+		case PATH_IS_DIRECTORY:
+			if (!config.getIndexFiles().empty()) {
+				index_file = path + "/" + config.getIndexFiles()[0];
+				if (pathIsFile(index_file)) {
+					readContent(index_file);
+					break;
+				}
+			}
+
+			loc = findLocation(request.getUri());
+			if (loc && loc->getAutoIndex()) {
+				ListDirectory(path, request.getUri());
+			} else {
+				status_code = 403;
+				readContent(getPathStatusCode());
+			}
+			break;
+
+		case PATH_NO_PERMISSION:
+			if (status_code != 403) {
+				status_code = 403;
+				readContent(getPathStatusCode());
+			}
+			break;
+
+		case PATH_NOT_EXISTS:
+			if (status_code != 404) {
+				status_code = 404;
+				readContent(getPathStatusCode());
+			}
+			break;
+
+		case PATH_IS_OTHER:
+			if (status_code != 400) {
+				status_code = 400;
+				readContent(getPathStatusCode());
+			}
+			break;
+
+		case PATH_ERROR:
+			if (status_code != 400) {
+				status_code = 400;
+				readContent(getPathStatusCode());
+			}
+			break;
+
+		default:
+			if (status_code != 404) {
+				status_code = 404;
+				readContent(getPathStatusCode());
+			} else {
+				status_code = 520;
+				send_body.clear();
+				return ;
+			}
 	}
 }
 
 void Response::writeContent(const std::string &path, std::string content)
 {
-	std::ofstream	file;
+	if (content.empty()) {
+		status_code = 400;
+		readContent(getPathStatusCode());
+	}
 
+	std::ofstream	file;
 	if (pathIsFile(path))
 	{
 		file.open(path.c_str());
@@ -165,7 +282,6 @@ void Response::deleteContent(const std::string &path) {
 }
 
 void Response::ListDirectory(const std::string& path, const std::string& uri) {
-
 	DIR* dir = opendir(path.c_str());
 	if (!dir) {
 		status_code = 404;
@@ -174,19 +290,71 @@ void Response::ListDirectory(const std::string& path, const std::string& uri) {
 	}
 
 	std::ostringstream listing;
-	listing << "<html><head><title>Index of " << uri << "</title></head><body><h1>Index of " << uri << "</h1><hr><ul>";
+	listing << "<html><head><title>Index of " << uri << "</title><link rel=\"stylesheet\" href=\"error_pages/styles.css\"></head><body><h1>Index of " << uri << "</h1><hr><ul>";
+
 	struct dirent* entry;
+	if (uri != "/") {
+
+		std::string tmp = uri;
+		if (tmp.length() > 1 && tmp[tmp.length() - 1] == '/')
+			tmp.erase(tmp.length() - 1);
+
+		size_t pos = tmp.find_last_of('/');
+		std::string parent_uri;
+		if (pos == std::string::npos || pos == 0)
+			parent_uri = "/";
+		else
+			parent_uri = tmp.substr(0, pos) + "/";
+
+		listing << "<li><a href=\"" << parent_uri << "\">../</a></li>";
+	}
+
+
 	while ((entry = readdir(dir)) != NULL) {
 		std::string name = entry->d_name;
 		if (name != "." && name != "..") {
-			listing << "<li><a href=\"" << uri;
-			if (uri[uri.length() - 1] != '/')
-				listing << "/";
-			listing << name << "\">" << name << "</a></li>";
+
+			std::string file_uri = uri;
+			if (file_uri[file_uri.length() - 1] != '/')
+				file_uri += "/";
+			file_uri += name;
+
+			std::string full_path = path;
+			if (full_path[full_path.length() - 1] != '/')
+				full_path += "/";
+			full_path += name;
+
+			std::string display_name = name;
+			if (pathIsDirectory(full_path))
+				display_name += "/";
+
+			listing << "<li><a href=\"" << file_uri << "\">" << display_name << "</a></li>";
 		}
 	}
+
 	listing << "</ul><hr></body></html>";
 	closedir(dir);
 	send_body.clear();
 	send_body.append(listing.str());
+	status_code = 200;
+}
+
+LocationConfig* Response::findLocation(const std::string& uri) {
+	LocationConfig* matching_location = NULL;
+	size_t best_match_length = 0;
+
+	for (std::vector<LocationConfig *>::const_iterator it = locations.begin(); it != locations.end(); ++it) {
+		std::string location_path = (*it)->getLocationPath();
+
+		if (uri == location_path ||
+			uri.find(location_path + "/") == 0 ||
+			(location_path != "/" && uri.find(location_path) == 0)) {
+
+			if (location_path.length() > best_match_length) {
+				best_match_length = location_path.length();
+				matching_location = *it;
+			}
+		}
+	}
+	return (matching_location);
 }

@@ -1,9 +1,9 @@
 NAME					=	webserv
 
 SRC						=	Cgi.cpp LocationConfig.cpp \
-							main.cpp Parsing.cpp Request.cpp \
+							main.cpp ConfigParsing.cpp Request.cpp \
 							Response.cpp ResponseHeader.cpp \
-							ServerConfig.cpp Utils.cpp Webserv.cpp \
+							ServerConfig.cpp utils.cpp Webserv.cpp \
 
 GREEN					=	\033[0;32m
 RED						=	\033[0;31m
@@ -21,6 +21,7 @@ $(OBJ_DIR)/%.o			: 	src/%.cpp
 
 all						:	$(NAME)
 							@echo "$(GREEN)Starting webserver...$(NO_COLOR)"
+							./$(NAME)
 
 $(NAME)					:	$(OBJ_FILES)
 							@mkdir -p $(OBJ_DIR)
@@ -32,6 +33,7 @@ clean					:
 fclean					:	clean
 							@rm -rf $(NAME)
 							@echo "$(RED)Webserver stopped$(NO_COLOR)"
+							@killall $(NAME) 2&1>/dev/null
 
 re						:	fclean all
 

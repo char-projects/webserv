@@ -29,7 +29,7 @@ class ConfigParsing {
         void setConfigFile(const std::string &configFile);
         std::string getConfigFile() const;
         std::vector<ServerConfig *> getServers() const;
-        std::map<ServerConfig *, std::vector<LocationConfig *> > getLocations() const;
+		const std::map<ServerConfig *, std::vector<LocationConfig*> >& getLocations() const;
         void printConfig() const;
 };
 

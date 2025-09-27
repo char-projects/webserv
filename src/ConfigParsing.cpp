@@ -29,7 +29,7 @@ std::vector<ServerConfig *> ConfigParsing::getServers() const {
     return servers;
 }
 
-std::map<ServerConfig *, std::vector<LocationConfig *> > ConfigParsing::getLocations() const {
+const std::map<ServerConfig *, std::vector<LocationConfig*> >& ConfigParsing::getLocations() const {
     return locations;
 }
 
@@ -180,7 +180,7 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                 } else if (tokens[i] == "method") {
                     std::vector<std::string> methods;
                     size_t j = i + 1;
-                    while (j < tokens.size() && (tokens[j] == "GET" || tokens[j] == "POST" || tokens[j] == "DELETE")) {
+                    while (j < tokens.size() && (tokens[j] == "GET" || tokens[j] == "POST" || tokens[j] == "DELETE" || tokens[j] == "HEAD")) {
                         methods.push_back(tokens[j]);
                         j++;
                     }
@@ -201,7 +201,7 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                                     i++;
                                 }
                             } else if (tokens[i] == "return") {
-                                if (i + 2 < tokens.size() && isdigit(tokens[i + 1][0]) 
+                                if (i + 2 < tokens.size() && isdigit(tokens[i + 1][0])
                                     && tokens[i + 1].size() == 3 && tokens[i + 1][0] == '3') {
                                     location->addRedirect(location->getLocationPath(), tokens[i + 2]);
                                     i += 3;
