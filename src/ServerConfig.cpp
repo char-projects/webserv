@@ -1,6 +1,6 @@
 #include "../includes/ServerConfig.hpp"
 
-ServerConfig::ServerConfig() : host(""), ports(), root(""), errorPages(), indexFiles(), maxBodySize(0) {}
+ServerConfig::ServerConfig() : host(""), ports(), root(""), errorPages(), indexFiles(), maxBodySize(MAX_BODY_SIZE) {}
 
 ServerConfig::ServerConfig(const ServerConfig &other) {
     *this = other;

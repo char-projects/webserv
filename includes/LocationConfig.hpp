@@ -10,6 +10,7 @@ class LocationConfig {
         std::string filePath;
         std::string locationPath;
         bool autoIndex;
+        std::vector<std::pair<std::string, std::string> > redirects;
         std::vector<std::string> tryFiles;
         std::vector<std::string> cgiIncludes;
         std::string fastcgiPass;
@@ -30,6 +31,8 @@ class LocationConfig {
         void setLocationPath(const std::string &locationPath);
         bool getAutoIndex() const;
         void setAutoIndex(const std::string &autoIndex);
+        void addRedirect(const std::string &oldPath, const std::string &newPath);
+        std::vector<std::pair<std::string, std::string> > getRedirects() const;
         std::vector<std::string> getTryFiles() const;
         void addTryFile(const std::string &tryFile);
         std::vector<std::string> getCgiIncludes() const;

@@ -30,6 +30,7 @@
 
 class Request;
 class Response;
+class ConfigParsing;
 
 struct ClientState {
 	bool			ready_to_read;

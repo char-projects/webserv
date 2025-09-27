@@ -1,13 +1,14 @@
 #include "../includes/Request.hpp"
 #include "../includes/utils.hpp"
 
-Request::Request(int client_fd) {
+Request::Request(int client_fd, const ServerConfig& config) : config(config) {
     this->client_fd = client_fd;
 	status_code = 200;
 	method = "GET";
 	valid_methods.push_back("GET");
 	valid_methods.push_back("POST");
 	valid_methods.push_back("DELETE");
+	valid_methods.push_back("HEAD");
 	valid_methods.push_back("UNKNOWN");
 	path = "index.html";
     uri = "http://localhost:8080";
@@ -16,7 +17,7 @@ Request::Request(int client_fd) {
     recv_data = "";
 }
 
-Request::Request(const Request &other) {
+Request::Request(const Request &other) : config(other.config) {
 	client_fd = other.client_fd;
 	parameters = other.parameters;
 	headers = other.headers;
@@ -165,20 +166,23 @@ void Request::parseRecvData() {
         return;
     }
 
-    // Parse parameters from URI
-    size_t query_pos = uri_local.find('?');
+     size_t query_pos = uri_local.find('?');
     std::string clean_uri = (query_pos != std::string::npos) ? uri_local.substr(0, query_pos) : uri_local;
+
+    // CORRECCIÓN: Preservar la URI original para redirecciones
+    uri = clean_uri;  // Guardar la URI original
+
     if (query_pos != std::string::npos) {
         std::string param_str = uri_local.substr(query_pos + 1);
         parseParameters(param_str);
     }
 
-    // Set method, path, http_version
     method = method_local;
     http_version = http_version_local;
-    path = "www" + clean_uri;
-    if (clean_uri == "/")
-        path = "www/";
+    path = "www" + clean_uri;  // Path del filesystem
+    if (clean_uri == "/") {
+        path = config.getRoot() + clean_uri;
+    }
 
     // Parse headers
     while (std::getline(request_stream, line) && line != "\r") {
@@ -217,19 +221,11 @@ void Request::parseRecvData() {
     logger(STDOUT_FILENO, INFO, "Status Code:\t" + oss.str());
     status_code = 200;
 
-
-
-
-	// ################ AÑADIDO #########################
-
 	if (headers.count("Transfer-Encoding") && headers["Transfer-Encoding"] == "chunked") {
 		body = decodeChunked(body_content);
 	} else {
 		body = body_content;
 	}
-
-	// ################ AÑADIDO #########################
-
 
 }
 
@@ -247,13 +243,6 @@ void Request::setRecvData(const std::string& src_recv_data, size_t bytes_read) {
 	parseRecvData();
 }
 
-
-size_t Request::getBytesRecv() const {
-	return (recv_data.size());
-}
-
-
-// ################ AÑADIDO #########################
 
 std::string Request::decodeChunked(const std::string &chunkedBody) {
 	std::istringstream	stream(chunkedBody);
@@ -279,5 +268,14 @@ std::string Request::decodeChunked(const std::string &chunkedBody) {
 	return (decoded);
 }
 
+size_t Request::getBytesRecv() const {
+	return (recv_data.size());
+}
 
-// ################ AÑADIDO
+std::map<std::string, std::string> Request::getParameters() const {
+    return parameters;
+}
+
+std::map<std::string, std::string> Request::getHeaders() const {
+    return headers;
+}

@@ -64,6 +64,14 @@ void LocationConfig::setAutoIndex(const std::string &autoIndex) {
         std::cerr << "Error: Invalid value for autoindex" << std::endl;
 }
 
+void LocationConfig::addRedirect(std::string const &oldPath, std::string const &newPath) {
+    redirects.push_back(std::make_pair(oldPath, newPath));
+}
+
+std::vector<std::pair<std::string, std::string> > LocationConfig::getRedirects() const {
+    return redirects;
+}
+
 std::vector<std::string> LocationConfig::getTryFiles() const {
     return tryFiles;
 }

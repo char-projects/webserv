@@ -114,22 +114,9 @@ ADD:
 
 	en default.conf
 		- upload_path
-		- Validar rango de puertos validos del 0 al 65535.
-		- map<string, string> redirects;
-			location = /content/algo {
-				return 301 /new-name/newalgo;
-			}
 
 	REQUEST
-		- request.getParams()
-		- request.getRedirects()
-		- status_code = 200; Por defecto
-
-- Transfer-Encoding: chunked
-Decodificar el body leyendo “tamaño en hex + CRLF + datos + CRLF … 0\r\n\r\n”
-
-
-		HEADER
+```
 		- Content-Type: application/x-www-form-urlencoded  == POST FORMULARIO
 			Ex:
 
@@ -142,6 +129,8 @@ nombre=Juan&apellido=Perez&edad=25
 		- Content-Type: multipart/form-data == POST ARCHIVO
 
 			Ex:
+
+
 
 POST /upload HTTP/1.1
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
@@ -157,7 +146,9 @@ Content-Type: application/pdf
 [contenido binario del archivo]
 ------WebKitFormBoundary7MA4YWxkTrZu0gW--
 
-------------------
+```
+
+```
 
 POST /test.html HTTP/1.1
 Host: example.org
@@ -170,10 +161,4 @@ value1
 --boundary
 Content-Disposition: form-data; name="field2"; filename="example.txt"
 
-value2
-
-
-	LocationConfig.cpp
-		maxBodySize = 0 ---> maxBodySize = MAX_BODY_SIZE
-
-*/
+value2 ```

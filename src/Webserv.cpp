@@ -99,14 +99,15 @@ void Webserv::handleConnections(fd_set &read_fds) {
 				continue ;
 			}
 
-			std::map<ServerConfig *, std::vector<LocationConfig* > > map_loc = config.getLocations();
-  			std::map<ServerConfig *, std::vector<LocationConfig* > >::iterator loc;
+			const std::map<ServerConfig *, std::vector<LocationConfig*> >& map_loc = config.getLocations();
+			std::map<ServerConfig *, std::vector<LocationConfig*> >::const_iterator loc = map_loc.find((*it).second);
+
 			loc = map_loc.find((*it).second);
 			if (loc != map_loc.end())
 			{
 				fds_clients.push_back(client_fd);
 				clients_state[client_fd] = ClientState();
-				clients_state[client_fd].request = new Request(client_fd);
+				clients_state[client_fd].request = new Request(client_fd, *it->second);
 				clients_state[client_fd].response = new Response(client_fd, *clients_state[client_fd].request, *it->second, loc->second);
 				clients_state[client_fd].last_activity = time(NULL);
 				clients_state[client_fd].ready_to_read = true;

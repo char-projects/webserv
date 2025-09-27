@@ -27,10 +27,8 @@ const char* Response::getResponse() {
 
 	// ----> CGI logger(STDOUT_FILENO, SUCCESS, "Params: " + request.getParams();
 
-	// ----> 	if request.getRedirects(request.getPath())  and .....
-
 	if (status_code == 200) {
-		if (request.getMethod() == "GET") {
+		if (request.getMethod() == "GET" || request.getMethod() == "HEAD") {
 			readContent(request.getPath());
 		} else if (request.getMethod() == "POST") {
 			writeContent(request.getPath(), request.getBody());
@@ -49,9 +47,10 @@ const char* Response::getResponse() {
 	send_header = response_header->getHeader(status_code);
 	send_response.clear();
 	send_response.append(send_header);
-	send_response.append(send_body);
+	if (request.getMethod() != "HEAD")
+		send_response.append(send_body);
 
-	if (status_code > 299)
+	if (status_code > 299 && request.getMethod() != "HEAD")
 		log_type = ERROR;
 
 	logger(STDOUT_FILENO, log_type, "Host: " + config.getHost() +
@@ -138,17 +137,27 @@ void Response::readContent(const std::string &path) {
 		return ;
 	}
 
+	std::string request_uri = request.getUri();
+	LocationConfig* loc =  findLocation(request.getUri());
+
+	if (loc && !loc->getRedirects().empty()) {
+		std::vector<std::pair<std::string, std::string> > redirects = loc->getRedirects();
+		if (!redirects.empty()) {
+			status_code = 301;
+			response_header->setLocation(redirects[0].second);
+			send_body.clear();
+			return ;
+		}
+	}
+
 	PathType result = checkPath(path);
 	std::ifstream file;
 	std::stringstream buffer;
-	std::string index_file = config.getIndexFiles()[0];
+	std::string index_file;
 
-
-	//  || (result == PATH_IS_DIRECTORY && path[path.size()-1] != '/')
-
-	if (path.empty()) {
+	if (result == PATH_IS_DIRECTORY && path[path.size()-1] != '/') {
 		status_code = 301;
-		response_header->setLocation("/index.html");
+		response_header->setLocation(request.getUri() + "/");
 		send_body.clear();
 		return ;
 	}
@@ -169,25 +178,23 @@ void Response::readContent(const std::string &path) {
 			break;
 
 		case PATH_IS_DIRECTORY:
+			if (!config.getIndexFiles().empty()) {
+				index_file = path + "/" + config.getIndexFiles()[0];
+				if (pathIsFile(index_file)) {
+					readContent(index_file);
+					break;
+				}
+			}
 
-			ListDirectory(path, request.getUri());
-/*
-			index_file = path + index_file;
-			if (pathIsFile(index_file))
-				readContent(index_file);
-			else {
-				ListDirectory(path, request.getUri()); // TODO
-	
-				LocationConfig* loc = findLocation(path);
-				if (loc && loc->getAutoIndex())
-					ListDirectory(path, request.getUri());
-				else {
-					status_code = 403;
-					readContent(getPathStatusCode());
-				}*/
-			
-			
+			loc = findLocation(request.getUri());
+			if (loc && loc->getAutoIndex()) {
+				ListDirectory(path, request.getUri());
+			} else {
+				status_code = 403;
+				readContent(getPathStatusCode());
+			}
 			break;
+
 		case PATH_NO_PERMISSION:
 			if (status_code != 403) {
 				status_code = 403;
@@ -236,7 +243,6 @@ void Response::writeContent(const std::string &path, std::string content)
 	}
 
 	std::ofstream	file;
-
 	if (pathIsFile(path))
 	{
 		file.open(path.c_str());
@@ -284,31 +290,36 @@ void Response::ListDirectory(const std::string& path, const std::string& uri) {
 	}
 
 	std::ostringstream listing;
-	listing << "<html><head><title>Index of " << uri << "</title></head><body><h1>Index of " << uri << "</h1><hr><ul>";
+	listing << "<html><head><title>Index of " << uri << "</title><link rel=\"stylesheet\" href=\"error_pages/styles.css\"></head><body><h1>Index of " << uri << "</h1><hr><ul>";
 
 	struct dirent* entry;
-
-   	std::string str = path;
-
-	//std::string to_remove = "www/";
-	/* TODO
-
-	*/
 	if (uri != "/") {
-		size_t last_slash = uri.find_last_of('/');
-		std::string parent_uri = (last_slash > 0) ? uri.substr(0, last_slash) : "/";
+
+		std::string tmp = uri;
+		if (tmp.length() > 1 && tmp[tmp.length() - 1] == '/')
+			tmp.erase(tmp.length() - 1);
+
+		size_t pos = tmp.find_last_of('/');
+		std::string parent_uri;
+		if (pos == std::string::npos || pos == 0)
+			parent_uri = "/";
+		else
+			parent_uri = tmp.substr(0, pos) + "/";
+
 		listing << "<li><a href=\"" << parent_uri << "\">../</a></li>";
 	}
+
 
 	while ((entry = readdir(dir)) != NULL) {
 		std::string name = entry->d_name;
 		if (name != "." && name != "..") {
+
 			std::string file_uri = uri;
 			if (file_uri[file_uri.length() - 1] != '/')
 				file_uri += "/";
-			file_uri +=  name;
+			file_uri += name;
 
-			std::string full_path = str;
+			std::string full_path = path;
 			if (full_path[full_path.length() - 1] != '/')
 				full_path += "/";
 			full_path += name;
@@ -317,11 +328,6 @@ void Response::ListDirectory(const std::string& path, const std::string& uri) {
 			if (pathIsDirectory(full_path))
 				display_name += "/";
 
-/*
-			size_t pos = file_uri.find(to_remove);
-			if (pos != std::string::npos)
-				file_uri.erase(pos, to_remove.length());
-*/
 			listing << "<li><a href=\"" << file_uri << "\">" << display_name << "</a></li>";
 		}
 	}
@@ -333,13 +339,21 @@ void Response::ListDirectory(const std::string& path, const std::string& uri) {
 	status_code = 200;
 }
 
-LocationConfig* Response::findLocation(const std::string& path) {
+LocationConfig* Response::findLocation(const std::string& uri) {
 	LocationConfig* matching_location = NULL;
+	size_t best_match_length = 0;
 
 	for (std::vector<LocationConfig *>::const_iterator it = locations.begin(); it != locations.end(); ++it) {
-		if (request.getPath() == path) {
-			matching_location = *it;
-			break;
+		std::string location_path = (*it)->getLocationPath();
+
+		if (uri == location_path ||
+			uri.find(location_path + "/") == 0 ||
+			(location_path != "/" && uri.find(location_path) == 0)) {
+
+			if (location_path.length() > best_match_length) {
+				best_match_length = location_path.length();
+				matching_location = *it;
+			}
 		}
 	}
 	return (matching_location);

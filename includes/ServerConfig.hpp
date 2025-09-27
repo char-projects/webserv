@@ -4,11 +4,12 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include "Webserv.hpp"
 
 class ServerConfig {
     private:
         std::string host;
-        std::vector<int> ports;      
+        std::vector<int> ports;
         std::string root;
         std::vector<std::pair<std::string, int> > errorPages;
         std::vector<std::string> indexFiles;

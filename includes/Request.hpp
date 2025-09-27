@@ -6,6 +6,9 @@
 # include <sstream>
 # include <vector>
 # include "Webserv.hpp"
+# include "ServerConfig.hpp"
+
+class ServerConfig;
 
 class Request {
 	private:
@@ -21,9 +24,10 @@ class Request {
 		ssize_t		status_code;
 		int			client_fd;
 		std::string	recv_data;
+		const ServerConfig& config;
 
 	public:
-		Request(int client_fd);
+		Request(int client_fd, const ServerConfig& config);
 		Request(const Request &other);
 		Request &operator=(const Request &other);
 		~Request();
@@ -48,9 +52,9 @@ class Request {
 		ssize_t getStatusCode() const;
 		void setUri(const std::string &uri);
 		std::string getUri() const;
-
-		// ################ AÑADIDO #########################
 		std::string decodeChunked(const std::string &chunkedBody);
+		std::map<std::string, std::string> getParameters() const;
+		std::map<std::string, std::string> getHeaders() const;
 };
 
 #endif
