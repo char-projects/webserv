@@ -1,31 +1,31 @@
 # Webserv
 
 ## ❗ OBLIGATORIO
-- [ ] El programa debe obtener la configuración de un archivo, con la posibilidad de pasarle como argumento el ruta del archivo **./webserv [configuration file]**
-- [ ] Servidor **no bloqueante**, lo que quiere decir que debe responder varias peticiones "al mismo tiempo"
-- [ ] 1 Solo poll para entrada / salida (select(), kqueue(), or epoll())
-- [ ] Poner algún tiempo límite para las respuestas
-- [ ] Códigos de estado precisos
-- [ ] Página de error por defecto (típico not found, etc)
-- [ ] Servir web estáticas con enlaces y demás
+- [X] El programa debe obtener la configuración de un archivo, con la posibilidad de pasarle como argumento el ruta del archivo **./webserv [configuration file]**
+- [X] Servidor **no bloqueante**, lo que quiere decir que debe responder varias peticiones "al mismo tiempo"
+- [X] 1 Solo poll para entrada / salida (select(), kqueue(), or epoll())
+- [X] Poner algún tiempo límite para las respuestas
+- [X] Códigos de estado precisos
+- [X] Página de error por defecto (típico not found, etc)
+- [X] Servir web estáticas con enlaces y demás
 - [ ] Subir archivos
 - [ ] Implementar al menos los métodos **GET, POST y DELETE**.
-- [ ] El servidor debe poder escuchar desde múltiples puertos (ex: 80, 8080, ...)
-- [ ] Proporcionar páginas y archivos de configuración para demostrar que todo lo que se pide funciona
+- [X] El servidor debe poder escuchar desde múltiples puertos (ex: 80, 8080, ...)
+- [X] Proporcionar páginas y archivos de configuración para demostrar que todo lo que se pide funciona
 - [ ] Todo I/O debe pasar por select()
 - [ ] Solo debe haber una lectura o una escritura por cliente por select()
 - ........... !!! REVISAR SUBJECT ¡¡¡
 
 
 ## ❗ OBLIGATORIO (ARCHIVO DE CONFIGURACIÓN)
-- [ ] Definición de múltiples puertos
-- [ ] Ruta del HTML de errores
-- [ ] Tamaño máximo de las respuestas del cliente
-- [ ] Listado de métodos aceptados por el servidor
-- [ ] Redirecciones
-- [ ] Ruta donde se aloja la web
-- [ ] Habilitar o deshabilitar el listado de directorios
-- [ ] Archivo por entregado por defecto cuando la petición es un directorio
+- [X] Definición de múltiples puertos
+- [X] Ruta del HTML de errores
+- [X] Tamaño máximo de las respuestas del cliente
+- [X] Listado de métodos aceptados por el servidor
+- [X] Redirecciones
+- [X] Ruta donde se aloja la web
+- [X] Habilitar o deshabilitar el listado de directorios
+- [X] Archivo entregado por defecto cuando la petición es un directorio
 - [ ] Si el cliente puede o no alojar archivos en el servidor y dar el directorio donde se aloja
 - ........... !!! REVISAR SUBJECT ¡¡¡
 
@@ -41,25 +41,18 @@
 ---
 
 ## ❌ Cosas que NO hay que hacer
-- Mantener sesiones (cookies) ??
+- Mantener sesiones (cookies) ?? BONUS
+- CGI varios BONUS
 
 ---
 
 ## ❔ PREGUNTAS
-- Como no es obligatorio usar la misma estructura que en NGINX, usar algo como JSON, XML, yaml ???
-- Y qué hay de las web dinámicas ??
-- HTTP/1.1 o HTTP/1.0 ¿?
-- poll() <poll.h> o select() <sys/select.h> o epoll() <sys/epoll.h>
-- Contenedores a usar?
 - Bonus sí o no?
-- CHECK SIZE DEL RESPONSE?, CHUNK RESPONSE??
 
 ---
 
 ## ⌛ SUGERENCIAS
 - Usar tests tanto de funcionamiento como de stress
-- Particionar en carpetas, cada una con su TODO.md / main / Makefile para trabajar y testear
-	y mostrar avances, por separado y luego unificar ?
 - El que termina que empiece con la web de pruebas
 - Conseguir la hoja de corrección
 
@@ -110,7 +103,6 @@
 
 TOSEE:
 - [ ] NULL (bloqueo indefinido)
-- [ ] con default.conf soporta comentarios?? #
 
 RESOURCES:
 - https://www.transparentedge.eu/blog/transfer-encoding-chunked/
