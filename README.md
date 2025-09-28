@@ -101,7 +101,7 @@
 	- curl --resolve server42.com:80:127.0.0.1 http://server42.com/
 	- curl -X POST -H "Content-Type: plain/text" --data "BODY IS HERE write something shorter or longer than body limit"
 
-
+pro
 TOSEE:
 - [ ] NULL (bloqueo indefinido)
 
