@@ -33,7 +33,7 @@ clean					:
 fclean					:	clean
 							@rm -rf $(NAME)
 							@echo "$(RED)Webserver stopped$(NO_COLOR)"
-							@killall $(NAME) 2&1>/dev/null
+							@killall $(NAME) 2>/dev/null || true
 
 re						:	fclean all
 

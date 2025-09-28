@@ -11,29 +11,38 @@ const std::string ResponseHeader::setContent(size_t status_code) {
 	std::vector<std::string> args;
 	args.clear();
 
+	std::string connectionHeader = "close";
+	if (status_code < 400 && status_code != 204)
+		connectionHeader = "keep-alive";
+
 	switch (status_code)
 	{
 		case 200:
 			args.push_back(contentType);
 			args.push_back(stringify(contentLength));
+			args.push_back(connectionHeader);
 			content.append(format_string(RESPONSE_200, args));
 			break;
 		case 201:
 			args.push_back(stringify(contentLength));
 			args.push_back(location);
+			args.push_back(connectionHeader);
 			content.append(format_string(RESPONSE_201, args));
 			break;
 		case 204:
 			args.push_back(stringify(contentLength));
 			args.push_back(location);
+			args.push_back(connectionHeader);
 			content.append(format_string(RESPONSE_204, args));
 			break;
 		case 301:
 			args.push_back(location);
+			args.push_back(connectionHeader);
 			content.append(format_string(RESPONSE_301, args));
 			break;
 		case 307:
 			args.push_back(location);
+			args.push_back(connectionHeader);
 			content.append(format_string(RESPONSE_307, args));
 			break;
 		case 400:

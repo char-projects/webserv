@@ -1,6 +1,8 @@
 #include "../includes/Webserv.hpp"
 #include "../includes/utils.hpp"
 
+Webserv* Webserv::signal_instance = NULL;
+
 Webserv::Webserv(ConfigParsing &config) : config(config) {
 	this->active = true;
 	this->fds_sockets = std::map<int, ServerConfig*>();
@@ -11,8 +13,14 @@ Webserv::Webserv(ConfigParsing &config) : config(config) {
 Webserv::~Webserv() {
 
 	for (std::map<int, ClientState>::iterator it = clients_state.begin(); it != clients_state.end(); ++it) {
-		delete it->second.request;
-		delete it->second.response;
+		if (it->second.request) {
+			delete it->second.request;
+			it->second.request = NULL;
+		}
+		if (it->second.response) {
+			delete it->second.response;
+			it->second.response = NULL;
+		}
 	}
 
 	for (std::vector<int>::const_iterator it = fds_clients.begin(); it != fds_clients.end(); ++it)
@@ -63,7 +71,7 @@ void Webserv::initializePorts() {
 int Webserv::initializeSelect(fd_set &read_fds, fd_set &write_fds) {
 	int				max_fd = 0;
 	int				client_fd;
-	struct timeval	timeout = {5, 0};
+	struct timeval	timeout = {1, 0};
 	FD_ZERO(&read_fds);
 	FD_ZERO(&write_fds);
 
@@ -96,13 +104,11 @@ void Webserv::handleConnections(fd_set &read_fds) {
 
 			if (client_fd < 0) {
 				logger(STDOUT_FILENO, ERROR, "Error establishing incoming connection.");
-				continue ;
+				continue;
 			}
 
 			const std::map<ServerConfig *, std::vector<LocationConfig*> >& map_loc = config.getLocations();
 			std::map<ServerConfig *, std::vector<LocationConfig*> >::const_iterator loc = map_loc.find((*it).second);
-
-			loc = map_loc.find((*it).second);
 			if (loc != map_loc.end())
 			{
 				fds_clients.push_back(client_fd);
@@ -111,8 +117,10 @@ void Webserv::handleConnections(fd_set &read_fds) {
 				clients_state[client_fd].response = new Response(client_fd, *clients_state[client_fd].request, *it->second, loc->second);
 				clients_state[client_fd].last_activity = time(NULL);
 				clients_state[client_fd].ready_to_read = true;
+				clients_state[client_fd].request->reset();
 				logger(STDOUT_FILENO, INFO, "New client connected in port " + stringify(client_fd));
 			} else {
+				close(client_fd);
 				logger(STDOUT_FILENO, ERROR, "New client no connected in port " + stringify(client_fd));
 			}
 		}
@@ -134,22 +142,26 @@ void Webserv::clientRequest(int client_fd, bool &close_connection) {
 }
 
 void Webserv::clientResponse(int client_fd, bool &close_connection) {
-	const char*	response_data = clients_state[client_fd].response->getResponse();
-	size_t		response_size = clients_state[client_fd].response->getSize();
-	ssize_t		bytes_sent = send(client_fd, response_data, response_size, 0);
+	const char* response_data = clients_state[client_fd].response->getResponse();
+	size_t response_size = clients_state[client_fd].response->getSize();
+	ssize_t bytes_sent = send(client_fd, response_data, response_size, 0);
 
 	if (bytes_sent < 0) {
 		logger(STDOUT_FILENO, ERROR, "Send failed for client " + stringify(client_fd) + ", errno: " + stringify(errno));
-		close_connection = true;
-	} else if (bytes_sent == 0) {
-		logger(STDOUT_FILENO, WARNING, "Client " + stringify(client_fd) + " closed connection");
 		close_connection = true;
 	} else if ((size_t)bytes_sent < response_size) {
 		logger(STDOUT_FILENO, WARNING, "Partial send: " + stringify(bytes_sent) + "/" + stringify(response_size) + " bytes");
 		close_connection = true;
 	} else {
 		clients_state[client_fd].ready_to_write = false;
-		close_connection = true;
+		if (clients_state[client_fd].response->getStatusCode() < 400) {
+			clients_state[client_fd].ready_to_read = true;
+			clients_state[client_fd].ready_to_write = false;
+			clients_state[client_fd].last_activity = time(NULL);
+			clients_state[client_fd].request->reset();
+		} else {
+			close_connection = true;
+		}
 	}
 }
 
@@ -164,11 +176,15 @@ void Webserv::start() {
 
 		activity = initializeSelect(read_fds, write_fds);
 		if (activity < 0) {
-			if (errno != EINTR)
-				throw std::runtime_error("Error in select() ");
-			continue ;
-		} else if (!activity)
-			continue ;
+			if (errno == EINTR) {
+				continue;
+			} else {
+				logger(STDERR_FILENO, ERROR, "Error in select(): " + std::string(strerror(errno)));
+				throw std::runtime_error("Error in select()");
+			}
+		} else if (!activity) {
+			continue;
+		}
 
 		handleConnections(read_fds);
 
@@ -176,7 +192,7 @@ void Webserv::start() {
 			client_fd = *it;
 			close_connection = false;
 
-			time_t current_time = time(NULL); // 15 segundos kick client
+			time_t current_time = time(NULL);
 			if (current_time - clients_state[client_fd].last_activity > 30) {
 				logger(STDOUT_FILENO, INFO, "Client timeout: " + stringify(client_fd));
 				close_connection = true;
@@ -189,10 +205,14 @@ void Webserv::start() {
 				clientResponse(client_fd, close_connection);
 
 			if (close_connection) {
-				if (clients_state[client_fd].request)
+				if (clients_state[client_fd].request) {
 					delete clients_state[client_fd].request;
-				if (clients_state[client_fd].response)
+					clients_state[client_fd].request = NULL;
+				}
+				if (clients_state[client_fd].response) {
 					delete clients_state[client_fd].response;
+					clients_state[client_fd].response = NULL;
+				}
 				close(client_fd);
 				clients_state.erase(client_fd);
 				it = fds_clients.erase(it);

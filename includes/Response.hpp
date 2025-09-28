@@ -26,7 +26,7 @@ class Response {
 		~Response();
 		const char*			getResponse();
 		size_t				getSize();
-
+		size_t				getStatusCode() const;
 	private:
 		std::string						send_response;
 		std::string						send_header;
@@ -47,10 +47,12 @@ class Response {
 
 		void				readContent(const std::string &path);
 		void				writeContent(const std::string &path, std::string content);
+		void				handleFileUpload(const std::string &content);
 		void				deleteContent(const std::string &path);
 		void		 		ListDirectory(const std::string& path, const std::string& uri);
 		const std::string	getPathStatusCode();
 		LocationConfig*		findLocation(const std::string& path);
+		void				reset();
 };
 
 #endif

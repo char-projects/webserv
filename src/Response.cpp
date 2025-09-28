@@ -19,10 +19,11 @@ Response::~Response() {
 
 const char* Response::getResponse() {
 	e_message log_type = SUCCESS;
+	counter = 0;
 
 	status_code = request.getStatusCode();
 	logger(STDOUT_FILENO, SUCCESS, "Host: " + config.getHost() +
-		" Request: " + request.getMethod() + " " + request.getPath() + " " +
+		" Request:  " + request.getMethod() + " " + request.getPath() + " " +
 		request.getHttpVersion() + " " + stringify(status_code));
 
 	// ----> CGI logger(STDOUT_FILENO, SUCCESS, "Params: " + request.getParams();
@@ -124,7 +125,6 @@ const std::string Response::getPathStatusCode() {
 			break;
 		}
 	}
-	counter = 0;
 	return (error_page_path);
 }
 
@@ -139,7 +139,6 @@ void Response::readContent(const std::string &path) {
 
 	std::string request_uri = request.getUri();
 	LocationConfig* loc =  findLocation(request.getUri());
-
 	if (loc && !loc->getRedirects().empty()) {
 		std::vector<std::pair<std::string, std::string> > redirects = loc->getRedirects();
 		if (!redirects.empty()) {
@@ -185,7 +184,6 @@ void Response::readContent(const std::string &path) {
 					break;
 				}
 			}
-
 			loc = findLocation(request.getUri());
 			if (loc && loc->getAutoIndex()) {
 				ListDirectory(path, request.getUri());
@@ -242,6 +240,11 @@ void Response::writeContent(const std::string &path, std::string content)
 		readContent(getPathStatusCode());
 	}
 
+	if (request.isMultipart() && !request.getUploadedFiles().empty()) {
+		handleFileUpload(content);
+		return ;
+	}
+
 	std::ofstream	file;
 	if (pathIsFile(path))
 	{
@@ -261,6 +264,49 @@ void Response::writeContent(const std::string &path, std::string content)
 		file << content;
 		file.close();
 		status_code = 201;
+		readContent(getPathStatusCode());
+	}
+}
+
+void Response::handleFileUpload(const std::string &content) {
+	(void) content;
+	std::string uploadDir = config.getUploadPath();
+	if (!pathIsDirectory(uploadDir)) {
+		if (mkdir(uploadDir.c_str(), 0755) != 0 && errno != EEXIST) {
+			status_code = 500;
+			readContent(getPathStatusCode());
+			logger(STDOUT_FILENO, ERROR, "Cannot create upload directory: " + uploadDir);
+			return ;
+		}
+	}
+
+	const std::map<std::string, std::string>& uploadedFiles = request.getUploadedFiles();
+	std::string responseBody = "<html><body><h1>File Upload Results</h1><ul>";
+	bool success = false;
+	for (std::map<std::string, std::string>::const_iterator it = uploadedFiles.begin(); it != uploadedFiles.end(); ++it) {
+		std::string filename = it->first + "_upload_" + stringify(time(NULL)) + ".dat";
+		std::string fullPath = uploadDir + "/" + filename;
+
+		std::ofstream file(fullPath.c_str(), std::ios::binary);
+		if (file.is_open()) {
+			file.write(it->second.c_str(), it->second.size());
+			file.close();
+			responseBody += "<li>File '" + it->first + "' uploaded successfully as: " + filename + "</li>";
+			success = true;
+			logger(STDOUT_FILENO, SUCCESS, "File uploaded: " + fullPath + " size: " + stringify(it->second.size()));
+		} else {
+			responseBody += "<li>Failed to upload file: " + it->first + "</li>";
+			logger(STDOUT_FILENO, ERROR, "Failed to write uploaded file: " + fullPath);
+		}
+	}
+
+	responseBody += "</ul></body></html>";
+
+	if (success) {
+		status_code = 201;
+		send_body = responseBody;
+	} else {
+		status_code = 500;
 		readContent(getPathStatusCode());
 	}
 }
@@ -291,7 +337,6 @@ void Response::ListDirectory(const std::string& path, const std::string& uri) {
 
 	std::ostringstream listing;
 	listing << "<html><head><title>Index of " << uri << "</title><link rel=\"stylesheet\" href=\"error_pages/styles.css\"></head><body><h1>Index of " << uri << "</h1><hr><ul>";
-
 	struct dirent* entry;
 	if (uri != "/") {
 
@@ -308,7 +353,6 @@ void Response::ListDirectory(const std::string& path, const std::string& uri) {
 
 		listing << "<li><a href=\"" << parent_uri << "\">../</a></li>";
 	}
-
 
 	while ((entry = readdir(dir)) != NULL) {
 		std::string name = entry->d_name;
@@ -331,7 +375,6 @@ void Response::ListDirectory(const std::string& path, const std::string& uri) {
 			listing << "<li><a href=\"" << file_uri << "\">" << display_name << "</a></li>";
 		}
 	}
-
 	listing << "</ul><hr></body></html>";
 	closedir(dir);
 	send_body.clear();
@@ -357,4 +400,17 @@ LocationConfig* Response::findLocation(const std::string& uri) {
 		}
 	}
 	return (matching_location);
+}
+
+size_t Response::getStatusCode() const {
+	return (status_code);
+}
+
+void Response::reset() {
+	send_response.clear();
+	send_header.clear();
+	send_body.clear();
+	status_code = 200;
+	bytes_send = 0;
+	counter = 0;
 }

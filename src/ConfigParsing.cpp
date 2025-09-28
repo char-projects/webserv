@@ -7,22 +7,33 @@ ConfigParsing::ConfigParsing(const ConfigParsing &other) {
 }
 
 ConfigParsing &ConfigParsing::operator=(const ConfigParsing &other) {
-    if (this != &other) {
-        this->servers = other.servers;
-    }
-    return *this;
+	if (this != &other) {
+		for (size_t i = 0; i < servers.size(); i++)
+			delete servers[i];
+		servers.clear();
+		for (std::map<ServerConfig*, std::vector<LocationConfig*> >::iterator it = locations.begin();
+			 it != locations.end(); ++it) {
+			for (size_t j = 0; j < it->second.size(); j++)
+				delete it->second[j];
+		}
+		locations.clear();
+		for (size_t i = 0; i < other.servers.size(); i++)
+			servers.push_back(new ServerConfig(*other.servers[i]));
+	}
+	return *this;
 }
 
 ConfigParsing::~ConfigParsing() {
     for (size_t i = 0; i < servers.size(); i++)
         delete servers[i];
     servers.clear();
-    for (std::map<ServerConfig*, std::vector<LocationConfig*> >::iterator it = locations.begin(); it != locations.end(); ++it) {
-        for (size_t j = 0; j < it->second.size(); j++) {
-            delete it->second[j];
-        }
-    }
-    locations.clear();
+	for (std::map<ServerConfig*, std::vector<LocationConfig*> >::iterator it = locations.begin();
+		 it != locations.end(); ++it) {
+		for (size_t j = 0; j < it->second.size(); j++)
+			delete it->second[j];
+		it->second.clear();
+	}
+	locations.clear();
 }
 
 std::vector<ServerConfig *> ConfigParsing::getServers() const {
@@ -161,14 +172,17 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                         std::cerr << "Error: Invalid error_page directive" << std::endl;
                         i++;
                     }
-                } else if (tokens[i] == "index") {
-                    size_t j = i + 1;
-                    while (j < tokens.size() && tokens[j].find("index") != std::string::npos) {
-                        server->addIndexFile(tokens[j]);
-                        j++;
-                    }
-                    i = j;
-                } else if (tokens[i] == "client_max_body_size") {
+				} else if (tokens[i] == "index") {
+					size_t j = i + 1;
+					while (j < tokens.size() && tokens[j] != "}" && tokens[j] != "location" &&
+						tokens[j] != "listen" && tokens[j] != "server_name" &&
+						tokens[j] != "root" && tokens[j] != "error_page" &&
+						tokens[j] != "client_max_body_size" && tokens[j] != "method") {
+						server->addIndexFile(tokens[j]);
+						j++;
+					}
+					i = j;
+				} else if (tokens[i] == "client_max_body_size") {
                     if (i + 1 < tokens.size()) {
                         size_t maxBodySize = static_cast<size_t>(atoi(tokens[i + 1].c_str()));
                         server->setMaxBodySize(maxBodySize);
@@ -177,6 +191,14 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                         std::cerr << "Error: Expected size after 'client_max_body_size'" << std::endl;
                         i++;
                     }
+				} else if (tokens[i] == "upload_path") {
+					if (i + 1 < tokens.size()) {
+						server->setUploadPath(tokens[i + 1]);
+						i += 2;
+					} else {
+						std::cerr << "Error: Expected path after 'upload_path'" << std::endl;
+						i++;
+					}
                 } else if (tokens[i] == "method") {
                     std::vector<std::string> methods;
                     size_t j = i + 1;
