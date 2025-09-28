@@ -3,11 +3,11 @@
 
 # include "Webserv.hpp"
 
-# define RESPONSE_200 "HTTP/1.1 200 OK\r\nContent-Type: {}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n"
-# define RESPONSE_201 "HTTP/1.1 201 Created\r\nContent-Type: text/html\r\nContent-Length: {}\r\nLocation: {}\r\nConnection: close\r\n\r\n"
-# define RESPONSE_204 "HTTP/1.1 204 No Content\r\nContent-Type: text/html\r\nContent-Length: 0\r\nLocation: {}\r\nConnection: close\r\n\r\n"
-# define RESPONSE_301 "HTTP/1.1 301 Moved Permanently\r\nLocation: {}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
-# define RESPONSE_307 "HTTP/1.1 307 Temporary Redirect\r\nLocation: {}/\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+# define RESPONSE_200 "HTTP/1.1 200 OK\r\nContent-Type: {}\r\nContent-Length: {}\r\nConnection: {}\r\n\r\n"
+# define RESPONSE_201 "HTTP/1.1 201 Created\r\nContent-Type: text/html\r\nContent-Length: {}\r\nLocation: {}\r\nConnection: {}\r\n\r\n"
+# define RESPONSE_204 "HTTP/1.1 204 No Content\r\nContent-Type: text/html\r\nContent-Length: 0\r\nLocation: {}\r\nConnection: {}\r\n\r\n"
+# define RESPONSE_301 "HTTP/1.1 301 Moved Permanently\r\nLocation: {}\r\nContent-Length: 0\r\nConnection: {}\r\n\r\n"
+# define RESPONSE_307 "HTTP/1.1 307 Temporary Redirect\r\nLocation: {}/\r\nContent-Length: 0\r\nConnection: {}\r\n\r\n"
 # define RESPONSE_400 "HTTP/1.1 400 Bad Request\r\nContent-Type: text/html\r\nContent-Length: {}\r\nConnection: close\r\n\r\n"
 # define RESPONSE_403 "HTTP/1.1 403 Forbidden\r\nContent-Type: text/html\r\nContent-Length: {}\r\nConnection: close\r\n\r\n"
 # define RESPONSE_404 "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\nContent-Length: {}\r\nConnection: close\r\n\r\n"

@@ -161,14 +161,17 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                         std::cerr << "Error: Invalid error_page directive" << std::endl;
                         i++;
                     }
-                } else if (tokens[i] == "index") {
-                    size_t j = i + 1;
-                    while (j < tokens.size() && tokens[j].find("index") != std::string::npos) {
-                        server->addIndexFile(tokens[j]);
-                        j++;
-                    }
-                    i = j;
-                } else if (tokens[i] == "client_max_body_size") {
+				} else if (tokens[i] == "index") {
+					size_t j = i + 1;
+					while (j < tokens.size() && tokens[j] != "}" && tokens[j] != "location" &&
+						tokens[j] != "listen" && tokens[j] != "server_name" &&
+						tokens[j] != "root" && tokens[j] != "error_page" &&
+						tokens[j] != "client_max_body_size" && tokens[j] != "method") {
+						server->addIndexFile(tokens[j]);
+						j++;
+					}
+					i = j;
+				} else if (tokens[i] == "client_max_body_size") {
                     if (i + 1 < tokens.size()) {
                         size_t maxBodySize = static_cast<size_t>(atoi(tokens[i + 1].c_str()));
                         server->setMaxBodySize(maxBodySize);
@@ -177,6 +180,14 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                         std::cerr << "Error: Expected size after 'client_max_body_size'" << std::endl;
                         i++;
                     }
+				} else if (tokens[i] == "upload_path") {
+					if (i + 1 < tokens.size()) {
+						server->setUploadPath(tokens[i + 1]);
+						i += 2;
+					} else {
+						std::cerr << "Error: Expected path after 'upload_path'" << std::endl;
+						i++;
+					}
                 } else if (tokens[i] == "method") {
                     std::vector<std::string> methods;
                     size_t j = i + 1;

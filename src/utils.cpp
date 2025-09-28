@@ -125,3 +125,20 @@ bool pathIsAccessible(const std::string& path) {
 			result == PATH_IS_DIRECTORY ||
 			result == PATH_IS_OTHER);
 }
+
+std::string normalizePath(const std::string& path) {
+    if (path.empty())
+		return ("/");
+
+    std::string result = path;
+    size_t start = (result.size() > 1 && result[0] == '/' && result[1] == '/') ? 2 : 0;
+    size_t pos;
+
+    while ((pos = result.find("//", start)) != std::string::npos) {
+        result.replace(pos, 2, "/");
+    }
+    while ((pos = result.find("/./")) != std::string::npos) {
+        result.replace(pos, 3, "/");
+    }
+    return (result);
+}

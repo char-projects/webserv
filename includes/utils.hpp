@@ -12,11 +12,9 @@
 // pathIsFile
 #include <sys/stat.h>
 
-
 # define DEBUG_MODE			true
 # define LOG_FILE			3
 # define DEFAULT_ERROR_LOG	"./logger.log"
-
 
 enum PathType {
 	PATH_NOT_EXISTS = 0,
@@ -50,5 +48,6 @@ bool		pathIsFile(const std::string& path);
 bool		pathIsDirectory(const std::string& path);
 bool		pathExists(const std::string& path);
 bool		pathIsAccessible(const std::string& path);
+std::string	normalizePath(const std::string& path);
 
 #endif

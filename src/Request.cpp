@@ -10,11 +10,13 @@ Request::Request(int client_fd, const ServerConfig& config) : config(config) {
 	valid_methods.push_back("DELETE");
 	valid_methods.push_back("HEAD");
 	valid_methods.push_back("UNKNOWN");
-	path = "index.html";
+	path = "";
     uri = "http://localhost:8080";
 	http_version = "";
 	body = "";
     recv_data = "";
+	isMultipartFormData = false;
+	boundary = "";
 }
 
 Request::Request(const Request &other) : config(other.config) {
@@ -131,6 +133,14 @@ bool Request::setSendData() {
 }
 
 void Request::parseRecvData() {
+
+    parameters.clear();
+    headers.clear();
+    body.clear();
+    isMultipartFormData = false;
+    boundary.clear();
+    uploadedFiles.clear();
+
     if (recv_data.empty()) {
         status_code = 400;
         return;
@@ -166,23 +176,39 @@ void Request::parseRecvData() {
         return;
     }
 
-     size_t query_pos = uri_local.find('?');
-    std::string clean_uri = (query_pos != std::string::npos) ? uri_local.substr(0, query_pos) : uri_local;
+    size_t query_pos = uri_local.find('?');
+	std::string clean_uri = (query_pos != std::string::npos) ? uri_local.substr(0, query_pos) : uri_local;
+	clean_uri = normalizePath(clean_uri);
 
-    // CORRECCIÓN: Preservar la URI original para redirecciones
-    uri = clean_uri;  // Guardar la URI original
+	uri = clean_uri;
+	if (query_pos != std::string::npos) {
+		std::string param_str = uri_local.substr(query_pos + 1);
+		parseParameters(param_str);
+	}
 
-    if (query_pos != std::string::npos) {
-        std::string param_str = uri_local.substr(query_pos + 1);
-        parseParameters(param_str);
-    }
+	method = method_local;
+	http_version = http_version_local;
+	std::string serverRoot = config.getRoot();
+	if (serverRoot.empty())
+		serverRoot = "www";
 
-    method = method_local;
-    http_version = http_version_local;
-    path = "www" + clean_uri;  // Path del filesystem
-    if (clean_uri == "/") {
-        path = config.getRoot() + clean_uri;
-    }
+	serverRoot = normalizePath(serverRoot);
+
+	if (!serverRoot.empty() && serverRoot[serverRoot.length()-1] == '/') {
+		serverRoot = serverRoot.substr(0, serverRoot.length()-1);
+	}
+
+	if (clean_uri == "/") {
+		path = serverRoot;
+		if (!config.getIndexFiles().empty()) {
+			path += "/" + config.getIndexFiles()[0];
+		} else {
+			path += "/index.html";
+		}
+	} else {
+		path = serverRoot + clean_uri;
+	}
+	path = normalizePath(path);
 
     // Parse headers
     while (std::getline(request_stream, line) && line != "\r") {
@@ -203,11 +229,9 @@ void Request::parseRecvData() {
         body_content.erase(body_content.size() - 1); // Remove the last newline character
     body = body_content;
 
-    logger(STDOUT_FILENO, INFO, "Method:\t" + method);
-    logger(STDOUT_FILENO, INFO, "URI:\t" + uri_local);
-    logger(STDOUT_FILENO, INFO, "Path:\t" + path);
-    logger(STDOUT_FILENO, INFO, "Version:\t" + http_version);
-    logger(STDOUT_FILENO, INFO, "Parameters:");
+	if (method == "POST")
+		parseMultipartFormData();
+
     for (std::map<std::string, std::string>::iterator it = parameters.begin(); it != parameters.end(); ++it) {
         logger(STDOUT_FILENO, INFO, "  " + it->first + " = " + it->second);
     }
@@ -221,28 +245,28 @@ void Request::parseRecvData() {
     logger(STDOUT_FILENO, INFO, "Status Code:\t" + oss.str());
     status_code = 200;
 
-	if (headers.count("Transfer-Encoding") && headers["Transfer-Encoding"] == "chunked") {
+	if (headers.count("Transfer-Encoding") && headers["Transfer-Encoding"] == "chunked")
 		body = decodeChunked(body_content);
-	} else {
+	else
 		body = body_content;
-	}
-
 }
 
 void Request::setRecvData(const std::string& src_recv_data, size_t bytes_read) {
-
 	if (bytes_read <= 0 || bytes_read > BUFFER_RECV_SIZE) {
 		logger(STDOUT_FILENO, ERROR, "Error reading from client or connection closed");
         status_code = 400;
 		return ;
 	}
-
+    if (!recv_data.empty()) {
+        parseRecvData();
+        recv_data.clear();
+    }
 	recv_data.append(src_recv_data);
-
-	logger(STDOUT_FILENO, SUCCESS, recv_data);
-	parseRecvData();
+    if (recv_data.find("\r\n\r\n") != std::string::npos) {
+        logger(STDOUT_FILENO, SUCCESS, "Complete request received");
+        parseRecvData();
+    }
 }
-
 
 std::string Request::decodeChunked(const std::string &chunkedBody) {
 	std::istringstream	stream(chunkedBody);
@@ -278,4 +302,85 @@ std::map<std::string, std::string> Request::getParameters() const {
 
 std::map<std::string, std::string> Request::getHeaders() const {
     return headers;
+}
+
+bool Request::isMultipart() const {
+	return (isMultipartFormData);
+}
+
+std::string Request::getBoundary() const {
+	return (boundary);
+}
+
+std::map<std::string, std::string> Request::getUploadedFiles() const {
+	return (uploadedFiles);
+}
+
+void Request::parseMultipartFormData() {
+	if (!headers.count("Content-Type"))
+		return ;
+
+	std::string contentType = headers["Content-Type"];
+	size_t boundaryPos = contentType.find("boundary=");
+
+	if (boundaryPos != std::string::npos) {
+		isMultipartFormData = true;
+		boundary = contentType.substr(boundaryPos + 9);
+		if (boundary[0] == '"' && boundary[boundary.length()-1] == '"')
+			boundary = boundary.substr(1, boundary.length()-2);
+	}
+
+	if (!isMultipartFormData || boundary.empty())
+		return ;
+
+	std::string fullBoundary = "--" + boundary;
+	size_t pos = 0;
+	while ((pos = body.find(fullBoundary, pos)) != std::string::npos) {
+		size_t partStart = pos + fullBoundary.length();
+		if (body[partStart] == '\r' && body[partStart+1] == '\n')
+			partStart += 2;
+		else if (body.substr(partStart, 2) == "--")
+			break;
+
+		size_t partEnd = body.find(fullBoundary, partStart);
+		if (partEnd == std::string::npos)
+			break;
+
+		std::string part = body.substr(partStart, partEnd - partStart);
+
+		size_t headerEnd = part.find("\r\n\r\n");
+		if (headerEnd != std::string::npos) {
+			std::string partHeaders = part.substr(0, headerEnd);
+			std::string partBody = part.substr(headerEnd + 4);
+			size_t namePos = partHeaders.find("name=\"");
+			size_t filenamePos = partHeaders.find("filename=\"");
+
+			if (namePos != std::string::npos && filenamePos != std::string::npos) {
+				size_t nameStart = namePos + 6;
+				size_t nameEnd = partHeaders.find("\"", nameStart);
+				std::string fieldName = partHeaders.substr(nameStart, nameEnd - nameStart);
+				size_t filenameStart = filenamePos + 10;
+				size_t filenameEnd = partHeaders.find("\"", filenameStart);
+				std::string filename = partHeaders.substr(filenameStart, filenameEnd - filenameStart);
+				uploadedFiles[fieldName] = partBody;
+				logger(STDOUT_FILENO, INFO, "Uploaded file: " + filename + " for field: " + fieldName + " size: " + stringify(partBody.size()));
+			}
+		}
+		pos = partEnd;
+	}
+}
+
+void Request::reset() {
+	status_code = 200;
+	method = "GET";
+	path = "";
+	uri = "http://localhost:8080";
+	http_version = "";
+	body = "";
+	recv_data = "";
+	parameters.clear();
+	headers.clear();
+	isMultipartFormData = false;
+	boundary = "";
+	uploadedFiles.clear();
 }

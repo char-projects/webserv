@@ -26,6 +26,10 @@ class Request {
 		std::string	recv_data;
 		const ServerConfig& config;
 
+		bool isMultipartFormData;
+		std::string boundary;
+		std::map<std::string, std::string> uploadedFiles;
+
 	public:
 		Request(int client_fd, const ServerConfig& config);
 		Request(const Request &other);
@@ -55,6 +59,13 @@ class Request {
 		std::string decodeChunked(const std::string &chunkedBody);
 		std::map<std::string, std::string> getParameters() const;
 		std::map<std::string, std::string> getHeaders() const;
+
+		bool isMultipart() const;
+		std::string getBoundary() const;
+		std::map<std::string, std::string> getUploadedFiles() const;
+		void parseMultipartFormData();
+		void reset();
+
 };
 
 #endif

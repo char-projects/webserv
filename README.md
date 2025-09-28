@@ -102,6 +102,11 @@
 - [ ] BUFFER_SIZE no debe ser un tamaño fijo??, leer cabecera request
 - [ ] Hacer la parte "NULL" de excepciones del select (select(max_fd + 1, &read_fds, &write_fds, NULL, &timeout);)
 - [ ] Simplificar ResponseHeader::setContent(size_t status_code)
+- [ ] Formalizar la forma en que se muestran mensajes de error, etc ...
+- [ ] Comprobar
+	- curl --resolve server42.com:80:127.0.0.1 http://server42.com/
+	- curl -X POST -H "Content-Type: plain/text" --data "BODY IS HERE write something shorter or longer than body limit"
+
 
 TOSEE:
 - [ ] NULL (bloqueo indefinido)
