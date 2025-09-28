@@ -88,6 +88,7 @@
 
 ## TODO
 
+- [ ] Cuando hay error al parsear el default.com continue; ????
 - [ ] Problems al usar HTTPS://
 - [ ] Comprobar que no se puede usar DELETE en carpetas que no tienen permitido el método
 - [ ] Limpiar estructura addr antes de configurar

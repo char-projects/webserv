@@ -240,9 +240,6 @@ void Request::parseRecvData() {
     for (std::map<std::string, std::string>::iterator it = headers.begin(); it != headers.end(); ++it) {
         logger(STDOUT_FILENO, INFO, "  " + it->first + ": " + it->second);
     }
-    std::ostringstream oss;
-    oss << status_code;
-    logger(STDOUT_FILENO, INFO, "Status Code:\t" + oss.str());
     status_code = 200;
 
 	if (headers.count("Transfer-Encoding") && headers["Transfer-Encoding"] == "chunked")
@@ -262,10 +259,8 @@ void Request::setRecvData(const std::string& src_recv_data, size_t bytes_read) {
         recv_data.clear();
     }
 	recv_data.append(src_recv_data);
-    if (recv_data.find("\r\n\r\n") != std::string::npos) {
-        logger(STDOUT_FILENO, SUCCESS, "Complete request received");
+    if (recv_data.find("\r\n\r\n") != std::string::npos)
         parseRecvData();
-    }
 }
 
 std::string Request::decodeChunked(const std::string &chunkedBody) {

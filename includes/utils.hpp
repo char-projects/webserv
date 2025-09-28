@@ -30,7 +30,8 @@ enum e_message {
 	WARNING,
 	INFO,
 	DEBUG,
-	SUCCESS
+	SUCCESS,
+	UNKNOWN
 };
 
 template<typename T>

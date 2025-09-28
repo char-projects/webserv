@@ -1,6 +1,8 @@
 #include "../includes/Webserv.hpp"
 #include "../includes/utils.hpp"
 
+Webserv* Webserv::signal_instance = NULL;
+
 Webserv::Webserv(ConfigParsing &config) : config(config) {
 	this->active = true;
 	this->fds_sockets = std::map<int, ServerConfig*>();
@@ -11,8 +13,14 @@ Webserv::Webserv(ConfigParsing &config) : config(config) {
 Webserv::~Webserv() {
 
 	for (std::map<int, ClientState>::iterator it = clients_state.begin(); it != clients_state.end(); ++it) {
-		delete it->second.request;
-		delete it->second.response;
+		if (it->second.request) {
+			delete it->second.request;
+			it->second.request = NULL;
+		}
+		if (it->second.response) {
+			delete it->second.response;
+			it->second.response = NULL;
+		}
 	}
 
 	for (std::vector<int>::const_iterator it = fds_clients.begin(); it != fds_clients.end(); ++it)
@@ -101,8 +109,6 @@ void Webserv::handleConnections(fd_set &read_fds) {
 
 			const std::map<ServerConfig *, std::vector<LocationConfig*> >& map_loc = config.getLocations();
 			std::map<ServerConfig *, std::vector<LocationConfig*> >::const_iterator loc = map_loc.find((*it).second);
-
-			loc = map_loc.find((*it).second);
 			if (loc != map_loc.end())
 			{
 				fds_clients.push_back(client_fd);
@@ -114,6 +120,7 @@ void Webserv::handleConnections(fd_set &read_fds) {
 				clients_state[client_fd].request->reset();
 				logger(STDOUT_FILENO, INFO, "New client connected in port " + stringify(client_fd));
 			} else {
+				close(client_fd);
 				logger(STDOUT_FILENO, ERROR, "New client no connected in port " + stringify(client_fd));
 			}
 		}

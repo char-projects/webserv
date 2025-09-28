@@ -59,6 +59,7 @@ class Webserv {
 		std::map<int, ServerConfig*>	fds_sockets;
 		std::vector<int>				fds_clients;
 		std::vector<int>				clients_served;
+		static Webserv*					signal_instance;
 
 		Webserv();
 		Webserv(const Webserv &obj);
@@ -68,6 +69,16 @@ class Webserv {
 		void	handleConnections(fd_set &read_fds);
 		void	clientRequest(int client_fd, bool &close_connection);
 		void	clientResponse(int client_fd, bool &close_connection);
+
+		static void setSignalInstance(Webserv* instance) {
+			signal_instance = instance;
+		}
+
+		static void signalHandler(int signum) {
+			(void)signum;
+			if (signal_instance)
+				signal_instance->stop();
+		}
 };
 
 #endif

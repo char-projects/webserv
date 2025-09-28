@@ -23,7 +23,7 @@ const char* Response::getResponse() {
 
 	status_code = request.getStatusCode();
 	logger(STDOUT_FILENO, SUCCESS, "Host: " + config.getHost() +
-		" Request: " + request.getMethod() + " " + request.getPath() + " " +
+		" Request:  " + request.getMethod() + " " + request.getPath() + " " +
 		request.getHttpVersion() + " " + stringify(status_code));
 
 	// ----> CGI logger(STDOUT_FILENO, SUCCESS, "Params: " + request.getParams();

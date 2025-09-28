@@ -7,22 +7,33 @@ ConfigParsing::ConfigParsing(const ConfigParsing &other) {
 }
 
 ConfigParsing &ConfigParsing::operator=(const ConfigParsing &other) {
-    if (this != &other) {
-        this->servers = other.servers;
-    }
-    return *this;
+	if (this != &other) {
+		for (size_t i = 0; i < servers.size(); i++)
+			delete servers[i];
+		servers.clear();
+		for (std::map<ServerConfig*, std::vector<LocationConfig*> >::iterator it = locations.begin();
+			 it != locations.end(); ++it) {
+			for (size_t j = 0; j < it->second.size(); j++)
+				delete it->second[j];
+		}
+		locations.clear();
+		for (size_t i = 0; i < other.servers.size(); i++)
+			servers.push_back(new ServerConfig(*other.servers[i]));
+	}
+	return *this;
 }
 
 ConfigParsing::~ConfigParsing() {
     for (size_t i = 0; i < servers.size(); i++)
         delete servers[i];
     servers.clear();
-    for (std::map<ServerConfig*, std::vector<LocationConfig*> >::iterator it = locations.begin(); it != locations.end(); ++it) {
-        for (size_t j = 0; j < it->second.size(); j++) {
-            delete it->second[j];
-        }
-    }
-    locations.clear();
+	for (std::map<ServerConfig*, std::vector<LocationConfig*> >::iterator it = locations.begin();
+		 it != locations.end(); ++it) {
+		for (size_t j = 0; j < it->second.size(); j++)
+			delete it->second[j];
+		it->second.clear();
+	}
+	locations.clear();
 }
 
 std::vector<ServerConfig *> ConfigParsing::getServers() const {
