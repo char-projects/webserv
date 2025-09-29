@@ -88,6 +88,10 @@ void ResponseHeader::setContentType(std::string path)
 		contentType = "text/css";
 	else if (extension == "js")
 		contentType = "text/javascript";
+	else if (extension == "ico")
+		contentType = "image/x-icon";		
+	else if (extension == "json")
+		contentType = "application/json";		
 	else if (extension == "jpeg" || extension == "jpg")
 		contentType = "image/jpeg";
 	else if (extension == "png")
@@ -98,8 +102,10 @@ void ResponseHeader::setContentType(std::string path)
 		contentType = "text/html";
 	else if (extension == "txt")
 		contentType = "text/plain";
+	else if (extension == "pdf")
+		contentType = "application/pdf";
 	else
-		contentType = "text/html";
+		contentType = "application/octet-stream";
 }
 
 void ResponseHeader::setDate()

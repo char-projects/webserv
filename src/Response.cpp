@@ -125,6 +125,9 @@ const std::string Response::getPathStatusCode() {
 			break;
 		}
 	}
+
+
+
 	return (error_page_path);
 }
 
@@ -203,6 +206,7 @@ void Response::readContent(const std::string &path) {
 		case PATH_NOT_EXISTS:
 			if (status_code != 404) {
 				status_code = 404;
+				logger(STDOUT_FILENO, ERROR, getPathStatusCode());
 				readContent(getPathStatusCode());
 			}
 			break;
@@ -224,6 +228,8 @@ void Response::readContent(const std::string &path) {
 		default:
 			if (status_code != 404) {
 				status_code = 404;
+				
+				
 				readContent(getPathStatusCode());
 			} else {
 				status_code = 520;
