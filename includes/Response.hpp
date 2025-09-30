@@ -53,10 +53,6 @@ class Response {
 		const std::string	getPathStatusCode();
 		LocationConfig*		findLocation(const std::string& path);
 		void				reset();
-
-
-
-
 };
 
 #endif

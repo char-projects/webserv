@@ -39,10 +39,10 @@ class Request {
 		~Request();
 
 		void parseParameters(const std::string &param_str);
-		void setRecvData(const char* src_recv_data, size_t bytes_read);
+		void setRecvData(const std::string& src_recv_data, size_t bytes_read);
 		size_t getBytesRecv() const;
 		void parseRecvData();
-
+		bool setSendData();
 
 		void setClientFd(int fd);
 		int getClientFd() const;
