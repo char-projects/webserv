@@ -473,6 +473,41 @@ document.addEventListener('DOMContentLoaded', () => {
                 fetch('/upload', { method: 'POST', body: formData }).then(response => {
                     if (response.ok) {
                         alert('Upload successful!');
+                        // Display uploaded files and a delete button for each file
+                        const fileList = document.getElementById('file-list');
+                        if (fileList) {
+                            for (let i = 0; i < files.length; i++) {
+                                const li = document.createElement('li');
+                                li.textContent = files[i].name;
+
+                                // Create delete button
+                                const deleteButton = document.createElement('button');
+                                deleteButton.textContent = 'Delete';
+                                deleteButton.className = 'delete-button';
+                                deleteButton.addEventListener('click', () => {
+                                    const filename = encodeURIComponent(files[i].name);
+
+                                    fetch(`/delete?filename=${filename}`, {
+                                        method: 'DELETE'
+                                    }).then(response => {
+                                        if (response.ok) {
+                                            li.remove();
+                                        } else {
+                                            alert('Delete failed.');
+                                        }
+                                    });
+                                });
+
+                                li.appendChild(deleteButton);
+                                li.className = 'file-item';
+                                fileList.appendChild(li);
+                                
+                                // Animate new file entry
+                                setTimeout(() => {
+                                    li.classList.add('show');
+                                }, 100 * i);
+                            }
+                        }
                     } else {
                         alert('Upload failed.');
                     }

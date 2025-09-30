@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include "ServerConfig.hpp"
 
 class LocationConfig {
     private:
@@ -19,8 +20,12 @@ class LocationConfig {
         bool cgiEnabled;
 	    std::vector<std::pair<std::string, std::string> > cgi;
 
+        size_t maxBodySize;
+        std::vector<std::string> methods;
+        std::string root;
+
     public:
-        LocationConfig();
+        LocationConfig(ServerConfig* server);
         LocationConfig(const LocationConfig &other);
         LocationConfig &operator=(const LocationConfig &other);
         ~LocationConfig();
@@ -47,6 +52,13 @@ class LocationConfig {
         void setCgiEnabled(bool enabled);
         std::vector<std::pair<std::string, std::string> > getCgi() const;
         void addCgi(const std::string &extension, const std::string &interpreter);
+
+        size_t getMaxBodySize() const;
+        void setMaxBodySize(const size_t &maxBodySize);
+        std::vector<std::string> getMethods() const;
+        void addMethods(const std::vector<std::string> &methods);
+        std::string getRoot() const;
+        void setRoot(const std::string &root);
 };
 
 #endif

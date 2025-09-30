@@ -21,7 +21,6 @@ $(OBJ_DIR)/%.o			: 	src/%.cpp
 
 all						:	$(NAME)
 							@echo "$(GREEN)Starting webserver...$(NO_COLOR)"
-							./$(NAME)
 
 $(NAME)					:	$(OBJ_FILES)
 							@mkdir -p $(OBJ_DIR)

@@ -206,6 +206,29 @@ body {
     animation: fadeInUp 1s ease 0.5s both;
 }
 
+.files {
+    position: relative;
+    border: 2px solid #00ffff;
+    border-radius: 10px;
+    padding: 2rem;
+    color: #ffffff;
+    font-size: 1rem;
+    opacity: 0.85;
+    max-width: 90vw;
+    width: 100%;
+    min-width: 260px;
+    box-sizing: border-box;
+    height: 300px;
+    max-height: 50vh;
+    overflow-y: auto;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
 .cta-button {
     padding: 1rem 2rem;
     background: linear-gradient(45deg, #00ffff, #ff00ff);
@@ -571,6 +594,22 @@ body {
     }
 }
 
+/* File List Items */
+.file-item {
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+    background: rgba(0, 255, 255, 0.1);
+    border-radius: 5px;
+    opacity: 0;
+    transform: translateX(-20px);
+    transition: all 0.3s ease;
+}
+
+.file-item.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
     width: 8px;
@@ -587,4 +626,16 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(45deg, #ff00ff, #00ffff);
+}
+
+.delete-button {
+    margin-left: 1rem;
+    padding: 0.3rem 0.6rem;
+    background: #ff4d4d;
+    border: none;
+    color: #ffffff;
+    font-size: 0.8rem;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.3s ease;
 }

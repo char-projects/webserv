@@ -1,6 +1,6 @@
 #include "../includes/LocationConfig.hpp"
 
-LocationConfig::LocationConfig() {
+LocationConfig::LocationConfig(ServerConfig* server) {
     filePath = "";
     locationPath = "";
     autoIndex = false;
@@ -11,6 +11,9 @@ LocationConfig::LocationConfig() {
     fastcgiParams.clear();
     cgiEnabled = false;
     cgi.clear();
+    methods.clear();
+    root = server->getRoot();
+    maxBodySize = 0;
 }
 
 LocationConfig::LocationConfig(const LocationConfig &other) {
@@ -29,6 +32,9 @@ LocationConfig &LocationConfig::operator=(const LocationConfig &other) {
         this->fastcgiParams = other.fastcgiParams;
         this->cgiEnabled = other.cgiEnabled;
         this->cgi = other.cgi;
+        this->methods = other.methods;
+        this->root = other.root;
+        this->maxBodySize = other.maxBodySize;
     }
     return *this;
 }
@@ -126,4 +132,30 @@ std::vector<std::pair<std::string, std::string> > LocationConfig::getCgi() const
 
 void LocationConfig::addCgi(const std::string &extension, const std::string &interpreter) {
     cgi.push_back(std::make_pair(extension, interpreter));
+}
+
+size_t LocationConfig::getMaxBodySize() const {
+    return maxBodySize;
+}
+
+void LocationConfig::setMaxBodySize(const size_t &maxBodySize) {
+    this->maxBodySize = maxBodySize;
+}
+
+std::vector<std::string> LocationConfig::getMethods() const {
+    return methods;
+}
+
+void LocationConfig::addMethods(const std::vector<std::string> &methods) {
+    for (size_t i = 0; i < methods.size(); i++) {
+        this->methods.push_back(methods[i]);
+    }
+}
+
+std::string LocationConfig::getRoot() const {
+    return root;
+}
+
+void LocationConfig::setRoot(const std::string &root) {
+    this->root = root;
 }

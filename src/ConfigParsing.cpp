@@ -209,7 +209,7 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                     server->setMethods(methods);
                     i = j;
                 } else if (tokens[i] == "location") {
-                    LocationConfig* location = new LocationConfig();
+                    LocationConfig* location = new LocationConfig(server);
                     if (i + 2 < tokens.size() && tokens[i + 2] == "{") {
                         location->setLocationPath(tokens[i + 1]);
                         i += 3; // Skip "location", path, and "{"
@@ -243,6 +243,32 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                                     // }
                                     i++;
                                 }
+                            } else if (tokens[i] == "client_max_body_size") {
+                                if (i + 1 < tokens.size()) {
+                                    size_t maxBodySize = static_cast<size_t>(atoi(tokens[i + 1].c_str()));
+                                    location->setMaxBodySize(maxBodySize);
+                                    i += 2;
+                                } else {
+                                    std::cerr << "Error: Expected size after 'client_max_body_size'" << std::endl;
+                                    i++;
+                                }
+                            } else if (tokens[i] == "root") {
+                                if (i + 1 < tokens.size()) {
+                                    location->setRoot(tokens[i + 1]);
+                                    i += 2;
+                                } else {
+                                    std::cerr << "Error: Expected path after 'root'" << std::endl;
+                                    i++;
+                                }
+                            } else if (tokens[i] == "method") {
+                                std::vector<std::string> methods;
+                                size_t j = i + 1;
+                                while (j < tokens.size() && (tokens[j] == "GET" || tokens[j] == "POST" || tokens[j] == "DELETE" || tokens[j] == "HEAD")) {
+                                    methods.push_back(tokens[j]);
+                                    j++;
+                                }
+                                location->addMethods(methods);
+                                i = j;
                             } else if (tokens[i] == "cgi_enabled") {
                                 if (i + 1 < tokens.size()) {
                                     if (tokens[i + 1] == "on")
@@ -377,9 +403,7 @@ void ConfigParsing::printConfig() const {
     size_t locCount = 1;
     for (std::map<ServerConfig*, std::vector<LocationConfig*> >::const_iterator it = locations.begin(); it != locations.end(); ++it) {
         for (size_t i = 0; i < it->second.size(); i++) {
-            std::cout << "Location " << locCount << ":" << std::endl;
-            if (!it->second[i]->getLocationPath().empty())
-                std::cout << "  Path: " << it->second[i]->getLocationPath() << std::endl;
+            std::cout << "Location: " << it->second[i]->getLocationPath() << std::endl;
             std::cout << "  AutoIndex: " << (it->second[i]->getAutoIndex() ? "on" : "off") << std::endl;
             if (!it->second[i]->getRedirects().empty()) {
                 std::cout << "  Redirects: ";
@@ -436,6 +460,20 @@ void ConfigParsing::printConfig() const {
                 }
                 std::cout << std::endl;
             }
+            if (it->second[i]->getMaxBodySize() > 0)
+                std::cout << "  Max Body Size: " << it->second[i]->getMaxBodySize() << " bytes" << std::endl;
+            if (!it->second[i]->getMethods().empty()) {
+                std::cout << "  Methods: ";
+                std::vector<std::string> methods = it->second[i]->getMethods();
+                for (size_t j = 0; j < methods.size(); j++) {
+                    std::cout << methods[j];
+                    if (j < methods.size() - 1)
+                        std::cout << ", ";
+                }
+                std::cout << std::endl;
+            }
+            if (!it->second[i]->getRoot().empty())
+                std::cout << "  Root: " << it->second[i]->getRoot() << std::endl;
             locCount++;
         }
     }
