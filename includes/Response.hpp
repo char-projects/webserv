@@ -27,19 +27,19 @@ class Response {
 		const char*			getResponse();
 		size_t				getSize();
 		size_t				getStatusCode() const;
-	private:
-		std::string						send_response;
-		std::string						send_header;
-		std::string						send_body;
-		int								client_fd;
-		size_t							status_code;
-		size_t							bytes_send;
-		size_t							counter;
-		const Request&					request;
-		const ServerConfig&				config;
-		ResponseHeader*					response_header;
 
- 		const std::vector<LocationConfig*>& locations;
+	private:
+		std::string							send_response;
+		std::string							send_header;
+		std::string							send_body;
+		int									client_fd;
+		size_t								status_code;
+		size_t								bytes_send;
+		size_t								counter;
+		const Request&						request;
+		const ServerConfig&					config;
+		ResponseHeader*						response_header;
+ 		const std::vector<LocationConfig*>&	locations;
 
 		Response();
 		Response(const Response &obj);
@@ -53,6 +53,10 @@ class Response {
 		const std::string	getPathStatusCode();
 		LocationConfig*		findLocation(const std::string& path);
 		void				reset();
+
+
+
+
 };
 
 #endif

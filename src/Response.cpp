@@ -26,7 +26,7 @@ const char* Response::getResponse() {
 		" Request:  " + request.getMethod() + " " + request.getPath() + " " +
 		request.getHttpVersion() + " " + stringify(status_code));
 
-	// ----> CGI logger(STDOUT_FILENO, SUCCESS, "Params: " + request.getParams();
+
 
 	if (status_code == 200) {
 		if (request.getMethod() == "GET" || request.getMethod() == "HEAD") {
@@ -228,8 +228,8 @@ void Response::readContent(const std::string &path) {
 		default:
 			if (status_code != 404) {
 				status_code = 404;
-				
-				
+
+
 				readContent(getPathStatusCode());
 			} else {
 				status_code = 520;
@@ -273,48 +273,130 @@ void Response::writeContent(const std::string &path, std::string content)
 		readContent(getPathStatusCode());
 	}
 }
-
 void Response::handleFileUpload(const std::string &content) {
-	(void) content;
-	std::string uploadDir = config.getUploadPath();
-	if (!pathIsDirectory(uploadDir)) {
-		if (mkdir(uploadDir.c_str(), 0755) != 0 && errno != EEXIST) {
-			status_code = 500;
-			readContent(getPathStatusCode());
-			logger(STDOUT_FILENO, ERROR, "Cannot create upload directory: " + uploadDir);
-			return ;
+	(void)content;
+
+	logger(STDOUT_FILENO, INFO, "=== START FILE UPLOAD HANDLING ===");
+
+	const std::string &body_content = request.getBody();
+	logger(STDOUT_FILENO, INFO, "Body size for upload: " + stringify(body_content.size()));
+
+
+	std::string firstBytes;
+	for (size_t i = 0; i < body_content.size() && i < 100; ++i) {
+		char c = body_content[i];
+		if (c >= 32 && c <= 126) {
+			firstBytes += c;
+		} else {
+			char hex[5];
+			snprintf(hex, sizeof(hex), "\\x%02X", (unsigned char)c);
+			firstBytes += hex;
 		}
 	}
+	logger(STDOUT_FILENO, INFO, "First 100 bytes (hex for non-printable): " + firstBytes);
+
 
 	const std::map<std::string, std::string>& uploadedFiles = request.getUploadedFiles();
-	std::string responseBody = "<html><body><h1>File Upload Results</h1><ul>";
-	bool success = false;
+	logger(STDOUT_FILENO, INFO, "Files parsed by request: " + stringify(uploadedFiles.size()));
 	for (std::map<std::string, std::string>::const_iterator it = uploadedFiles.begin(); it != uploadedFiles.end(); ++it) {
-		std::string filename = it->first + "_upload_" + stringify(time(NULL)) + ".dat";
-		std::string fullPath = uploadDir + "/" + filename;
+		logger(STDOUT_FILENO, INFO, " - " + it->first + " : " + stringify(it->second.size()) + " bytes");
+	}
 
-		std::ofstream file(fullPath.c_str(), std::ios::binary);
-		if (file.is_open()) {
-			file.write(it->second.c_str(), it->second.size());
-			file.close();
-			responseBody += "<li>File '" + it->first + "' uploaded successfully as: " + filename + "</li>";
-			success = true;
-			logger(STDOUT_FILENO, SUCCESS, "File uploaded: " + fullPath + " size: " + stringify(it->second.size()));
-		} else {
-			responseBody += "<li>Failed to upload file: " + it->first + "</li>";
-			logger(STDOUT_FILENO, ERROR, "Failed to write uploaded file: " + fullPath);
+
+	std::string uploadPathConfig = config.getUploadPath();
+	std::string serverRoot = config.getRoot();
+	if (serverRoot.empty()) serverRoot = "www";
+
+	if (!serverRoot.empty() && serverRoot[serverRoot.size() - 1] == '/')
+		serverRoot.erase(serverRoot.size() - 1);
+
+	std::string uploadDir;
+	if (!uploadPathConfig.empty() && uploadPathConfig[0] == '/')
+		uploadDir = uploadPathConfig;
+	else {
+		uploadDir = serverRoot;
+		if (!uploadDir.empty()) uploadDir += "/";
+		uploadDir += uploadPathConfig;
+	}
+
+
+	size_t p;
+	while ((p = uploadDir.find("//")) != std::string::npos) uploadDir.erase(p, 1);
+
+	logger(STDOUT_FILENO, INFO, "Upload directory: " + uploadDir);
+
+
+	struct stat st;
+	if (stat(uploadDir.c_str(), &st) != 0) {
+		logger(STDOUT_FILENO, INFO, "Upload directory doesn't exist, creating: " + uploadDir);
+		if (mkdir(uploadDir.c_str(), 0755) != 0 && errno != EEXIST) {
+			status_code = 500;
+			logger(STDOUT_FILENO, ERROR, "Cannot create upload directory: " + uploadDir + " errno: " + stringify(errno));
+			readContent(getPathStatusCode());
+			return;
+		}
+	} else {
+		if (!S_ISDIR(st.st_mode)) {
+			status_code = 500;
+			logger(STDOUT_FILENO, ERROR, "Upload path exists but is not a directory: " + uploadDir);
+			readContent(getPathStatusCode());
+			return;
 		}
 	}
 
-	responseBody += "</ul></body></html>";
 
-	if (success) {
-		status_code = 201;
-		send_body = responseBody;
-	} else {
-		status_code = 500;
-		readContent(getPathStatusCode());
+	if (!uploadedFiles.empty()) {
+		logger(STDOUT_FILENO, INFO, "Using files parsed by Request class");
+		bool anyWritten = false;
+		std::string responseBody = "<html><body><h1>File Upload Results</h1><ul>";
+
+		for (std::map<std::string, std::string>::const_iterator it = uploadedFiles.begin(); it != uploadedFiles.end(); ++it) {
+			std::string filename = it->first;
+			const std::string& fileData = it->second;
+
+			std::string fullPath = uploadDir;
+			if (fullPath.empty() || fullPath[fullPath.size() - 1] != '/')
+				fullPath += "/";
+			fullPath += filename;
+
+			logger(STDOUT_FILENO, INFO, "Writing file: " + fullPath + " size: " + stringify(fileData.size()));
+
+			std::ofstream ofs(fullPath.c_str(), std::ios::binary | std::ios::out | std::ios::trunc);
+			if (!ofs.is_open()) {
+				logger(STDOUT_FILENO, ERROR, "Failed to open file for writing: " + fullPath);
+				responseBody += "<li>Failed to write file: " + filename + "</li>";
+			} else {
+				ofs.write(fileData.data(), static_cast<std::streamsize>(fileData.size()));
+				ofs.close();
+
+
+				struct stat fileStat;
+				if (stat(fullPath.c_str(), &fileStat) == 0) {
+					logger(STDOUT_FILENO, SUCCESS, "File written successfully: " + fullPath + " size: " + stringify(fileStat.st_size));
+				} else {
+					logger(STDOUT_FILENO, ERROR, "File write verification failed for: " + fullPath);
+				}
+
+				responseBody += "<li>Uploaded: " + filename + " (" + stringify(fileData.size()) + " bytes)</li>";
+				anyWritten = true;
+			}
+		}
+
+		responseBody += "</ul></body></html>";
+
+		if (anyWritten) {
+			status_code = 201;
+			send_body = responseBody;
+		} else {
+			status_code = 400;
+			readContent(getPathStatusCode());
+		}
+		return;
 	}
+
+	logger(STDOUT_FILENO, WARNING, "No files parsed by Request, falling back to manual parsing");
+
+
 }
 
 void Response::deleteContent(const std::string &path) {

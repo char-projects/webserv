@@ -6,7 +6,7 @@ class CosmicWebsite {
         this.ctx = null;
         this.mouse = { x: 0, y: 0 };
         this.isAudioPlaying = false;
-        
+
         this.init();
     }
 
@@ -39,9 +39,9 @@ class CosmicWebsite {
 
         this.ctx = this.canvas.getContext('2d');
         this.resizeCanvas();
-        
+
         window.addEventListener('resize', () => this.resizeCanvas());
-        
+
         this.createParticles();
         this.animateParticles();
     }
@@ -68,31 +68,31 @@ class CosmicWebsite {
 
     animateParticles() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        
+
         this.particles.forEach((particle, index) => {
             // Update position
             particle.x += particle.vx;
             particle.y += particle.vy;
-            
+
             // Bounce off edges
             if (particle.x < 0 || particle.x > this.canvas.width) particle.vx *= -1;
             if (particle.y < 0 || particle.y > this.canvas.height) particle.vy *= -1;
-            
+
             // Draw particle
             this.ctx.globalAlpha = particle.opacity;
             this.ctx.fillStyle = particle.color;
             this.ctx.beginPath();
             this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
             this.ctx.fill();
-            
+
             // Draw connections to nearby particles
             for (let j = index + 1; j < this.particles.length; j++) {
                 const otherParticle = this.particles[j];
                 const distance = Math.sqrt(
-                    Math.pow(particle.x - otherParticle.x, 2) + 
+                    Math.pow(particle.x - otherParticle.x, 2) +
                     Math.pow(particle.y - otherParticle.y, 2)
                 );
-                
+
                 if (distance < 100) {
                     this.ctx.globalAlpha = (100 - distance) / 100 * 0.2;
                     this.ctx.strokeStyle = particle.color;
@@ -104,7 +104,7 @@ class CosmicWebsite {
                 }
             }
         });
-        
+
         requestAnimationFrame(() => this.animateParticles());
     }
 
@@ -116,7 +116,7 @@ class CosmicWebsite {
         document.addEventListener('mousemove', (e) => {
             this.mouse.x = e.clientX;
             this.mouse.y = e.clientY;
-            
+
             cursor.style.left = e.clientX + 'px';
             cursor.style.top = e.clientY + 'px';
         });
@@ -176,18 +176,18 @@ class CosmicWebsite {
 
         form.addEventListener('submit', (e) => {
             e.preventDefault();
-            
+
             const submitBtn = form.querySelector('.submit-btn');
             const originalText = submitBtn.textContent;
-            
+
             submitBtn.textContent = 'SENDING MESSAGE...';
             submitBtn.style.background = 'linear-gradient(45deg, #ff6b6b, #4ecdc4)';
-            
+
             // Simulate form submission
             setTimeout(() => {
                 submitBtn.textContent = 'MESSAGE SENT!';
                 submitBtn.style.background = 'linear-gradient(45deg, #51cf66, #339af0)';
-                
+
                 setTimeout(() => {
                     submitBtn.textContent = originalText;
                     submitBtn.style.background = 'linear-gradient(45deg, #00ffff, #ff00ff)';
@@ -201,7 +201,7 @@ class CosmicWebsite {
             input.addEventListener('focus', () => {
                 input.parentElement.style.transform = 'scale(1.02)';
             });
-            
+
             input.addEventListener('blur', () => {
                 input.parentElement.style.transform = 'scale(1)';
             });
@@ -211,22 +211,22 @@ class CosmicWebsite {
     // Tilt Effect
     setupTiltEffect() {
         const tiltElements = document.querySelectorAll('[data-tilt]');
-        
+
         tiltElements.forEach(element => {
             element.addEventListener('mousemove', (e) => {
                 const rect = element.getBoundingClientRect();
                 const x = e.clientX - rect.left;
                 const y = e.clientY - rect.top;
-                
+
                 const centerX = rect.width / 2;
                 const centerY = rect.height / 2;
-                
+
                 const rotateX = (y - centerY) / 10;
                 const rotateY = (centerX - x) / 10;
-                
+
                 element.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.05, 1.05, 1.05)`;
             });
-            
+
             element.addEventListener('mouseleave', () => {
                 element.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
             });
@@ -245,9 +245,9 @@ class CosmicWebsite {
                 if (entry.isIntersecting) {
                     entry.target.style.opacity = '1';
                     entry.target.style.transform = 'translateY(0)';
-                    
+
                     // Stagger animation for grid items
-                    if (entry.target.classList.contains('about-card') || 
+                    if (entry.target.classList.contains('about-card') ||
                         entry.target.classList.contains('feature-card')) {
                         const siblings = [...entry.target.parentElement.children];
                         const index = siblings.indexOf(entry.target);
@@ -274,7 +274,7 @@ class CosmicWebsite {
         audioToggle.addEventListener('click', () => {
             this.isAudioPlaying = !this.isAudioPlaying;
             audioToggle.textContent = this.isAudioPlaying ? '🔇' : '🔊';
-            
+
             // Add visual feedback
             audioToggle.style.transform = 'scale(0.9)';
             setTimeout(() => {
@@ -287,13 +287,13 @@ class CosmicWebsite {
     setupResponsiveNavigation() {
         const hamburger = document.querySelector('.hamburger');
         const navMenu = document.querySelector('.nav-menu');
-        
+
         if (!hamburger || !navMenu) return;
 
         hamburger.addEventListener('click', () => {
             navMenu.classList.toggle('active');
             hamburger.classList.toggle('active');
-            
+
             // Animate hamburger lines
             const spans = hamburger.querySelectorAll('span');
             if (hamburger.classList.contains('active')) {
@@ -330,7 +330,7 @@ class CosmicWebsite {
                     ${Math.random() * 10 - 5}px ${Math.random() * 10 - 5}px #00ffff,
                     ${Math.random() * 10 - 5}px ${Math.random() * 10 - 5}px #ffff00
                 `;
-                
+
                 setTimeout(() => {
                     glitchElement.style.textShadow = '';
                 }, 50);
@@ -433,7 +433,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const size = Math.max(rect.width, rect.height);
             const x = e.clientX - rect.left - size / 2;
             const y = e.clientY - rect.top - size / 2;
-            
+
             ripple.style.cssText = `
                 position: absolute;
                 width: ${size}px;
@@ -446,11 +446,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 animation: ripple 0.6s linear;
                 pointer-events: none;
             `;
-            
+
             this.style.position = 'relative';
             this.style.overflow = 'hidden';
             this.appendChild(ripple);
-            
+
             setTimeout(() => ripple.remove(), 600);
         });
     });
@@ -470,7 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 for (let i = 0; i < files.length; i++) {
                     formData.append('files[]', files[i]);
                 }
-                fetch('/upload', { method: 'POST', body: formData }).then(response => {
+                fetch('/uploads', { method: 'POST', body: formData }).then(response => {
                     if (response.ok) {
                         alert('Upload successful!');
                     } else {

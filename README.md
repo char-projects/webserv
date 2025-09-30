@@ -111,10 +111,13 @@ curl -X POST -F File=@Makefile localhost:8080/www/uploads/Makefile2
 
 ## ERRORES
 
-- [ ] Webs de error, 
 - [ ] En chrome los errores fugan código
-- [ ] No upload en la carpeta apropiada
 - [ ] no funciona el server42.com
+- [ ] Unknown directive in location block: method
+Unknown directive in location block: POST
+Unknown directive in location block: DELETE
+Unknown directive in location block: client_max_body_size
+Unknown directive in location block: 50000000
 
 
 ## TODO
@@ -192,4 +195,3 @@ value1
 Content-Disposition: form-data; name="field2"; filename="example.txt"
 
 value2 ```
-
