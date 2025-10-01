@@ -463,53 +463,57 @@ document.addEventListener('DOMContentLoaded', () => {
             input.type = 'file';
             input.multiple = true;
             input.click();
-            // Add parsing to check for file extensions later on !!!
             input.addEventListener('change', (event) => {
                 const files = event.target.files;
                 const formData = new FormData();
                 for (let i = 0; i < files.length; i++) {
                     formData.append('files[]', files[i]);
                 }
-                fetch('/upload', { method: 'POST', body: formData }).then(response => {
-                    if (response.ok) {
-                        alert('Upload successful!');
-                        // Display uploaded files and a delete button for each file
-                        const fileList = document.getElementById('file-list');
-                        if (fileList) {
-                            for (let i = 0; i < files.length; i++) {
-                                const li = document.createElement('li');
-                                li.textContent = files[i].name;
+                fetch('/upload', { 
+                    method: 'POST', 
+                    body: formData,
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                }).then(response => response.json()).then(uploadedFiles => {
+                    alert('Upload successful!');
+                    // Display uploaded files and a delete button for each file
+                    const fileList = document.getElementById('file-list');
+                    if (fileList) {
+                        uploadedFiles.forEach((fileInfo, index) => {
+                            const li = document.createElement('li');
+                            li.textContent = fileInfo.original;
 
-                                // Create delete button
-                                const deleteButton = document.createElement('button');
-                                deleteButton.textContent = 'Delete';
-                                deleteButton.className = 'delete-button';
-                                deleteButton.addEventListener('click', () => {
-                                    const filename = encodeURIComponent(files[i].name);
+                            // Create delete button
+                            const deleteButton = document.createElement('button');
+                            deleteButton.textContent = 'Delete';
+                            deleteButton.className = 'delete-button';
+                            deleteButton.addEventListener('click', () => {
+                                const filename = encodeURIComponent(fileInfo.original);
 
-                                    fetch(`/delete?filename=${filename}`, {
-                                        method: 'DELETE'
-                                    }).then(response => {
-                                        if (response.ok) {
-                                            li.remove();
-                                        } else {
-                                            alert('Delete failed.');
-                                        }
-                                    });
+                                fetch(`/delete?filename=${filename}`, {
+                                    method: 'DELETE'
+                                }).then(response => {
+                                    if (response.ok) {
+                                        li.remove();
+                                        alert('File deleted successfully!');
+                                    } else {
+                                        alert('Delete failed.');
+                                    }
+                                }).catch(() => {
+                                    alert('Delete failed.');
                                 });
+                            });
 
-                                li.appendChild(deleteButton);
-                                li.className = 'file-item';
-                                fileList.appendChild(li);
-                                
-                                // Animate new file entry
-                                setTimeout(() => {
-                                    li.classList.add('show');
-                                }, 100 * i);
-                            }
-                        }
-                    } else {
-                        alert('Upload failed.');
+                            li.appendChild(deleteButton);
+                            li.className = 'file-item';
+                            fileList.appendChild(li);
+                            
+                            // Animate new file entry
+                            setTimeout(() => {
+                                li.classList.add('show');
+                            }, 100 * index);
+                        });
                     }
                 }).catch(() => {
                     alert('Upload failed.');

@@ -368,14 +368,13 @@ void ConfigParsing::printConfig() const {
                 std::cout << ", ";
         }
         std::cout << std::endl;
-        std::cout << "  Error Pages: ";
+        std::cout << "  Error Pages:" << std::endl;
         for (size_t j = 0; j < servers[i]->getErrorPages().size(); j++) {
-            std::cout << servers[i]->getErrorPages()[j].second << "->" << servers[i]->getErrorPages()[j].first;
-            if (j < servers[i]->getErrorPages().size() - 1)
-                std::cout << ", ";
+            std::cout << "    " << servers[i]->getErrorPages()[j].second 
+                << "->" << servers[i]->getErrorPages()[j].first << std::endl;
         }
         if (servers[i]->getMaxBodySize() > 0)
-            std::cout << std::endl << "  Max Body Size: " << servers[i]->getMaxBodySize() << " bytes";
+            std::cout << "  Max Body Size: " << servers[i]->getMaxBodySize() << " bytes";
         if (!servers[i]->getMethods().empty()) {
             std::cout << std::endl << "  Methods: ";
             std::vector<std::string> methods = servers[i]->getMethods();

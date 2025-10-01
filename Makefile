@@ -12,6 +12,8 @@ NO_COLOR				=	\033[0m
 OBJ 					= 	$(SRC:.cpp=.o)
 OBJ_DIR					=	obj
 OBJ_FILES				=	$(addprefix $(OBJ_DIR)/, $(OBJ))
+UPLOADS_DIR				=	uploads
+UPLOADS					=	www/upload
 
 CFLAGS					=	-g -fsanitize=address -Werror -Wextra -Wall -std=c++98
 
@@ -27,7 +29,7 @@ $(NAME)					:	$(OBJ_FILES)
 							@c++ $(CFLAGS) -o $(NAME) $(OBJ_FILES)
 
 clean					:
-							@rm -rf $(OBJ_DIR)
+							@rm -rf $(OBJ_DIR) $(UPLOADS_DIR) $(UPLOADS)
 
 fclean					:	clean
 							@rm -rf $(NAME)

@@ -63,7 +63,6 @@ void Webserv::initializePorts() {
 				throw std::runtime_error("Error setting socket non-blocking " + stringify(ntohs(server_addr.sin_port)));
 
 			fds_sockets[fd_socket] = *it;
-			logger(STDOUT_FILENO, INFO, (*it)->getHost() + " Listening at the port " + stringify(*it2));
 		}
 	}
 }

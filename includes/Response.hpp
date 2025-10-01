@@ -3,14 +3,13 @@
 
 # include <string>
 # include <cstring>
-// ListDirectory
-# include <dirent.h>
-
+# include <dirent.h> // ListDirectory
 # include "Webserv.hpp"
 # include "ResponseHeader.hpp"
 # include "ServerConfig.hpp"
 # include "LocationConfig.hpp"
 # include "Request.hpp"
+# include "Cgi.hpp"
 
 # define MESSAGE_LOOP "<html><body><h1>500 Internal Server Error</h1></body></html>"
 
@@ -53,6 +52,8 @@ class Response {
 		const std::string	getPathStatusCode();
 		LocationConfig*		findLocation(const std::string& path);
 		void				reset();
+		bool				shouldExecuteAsCGI(const std::string &path);
+		void				executeCGI(const std::string &path);
 };
 
 #endif
