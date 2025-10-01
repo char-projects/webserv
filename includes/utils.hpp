@@ -1,4 +1,3 @@
-
 #ifndef UTILS_H
 # define UTILS_H
 
@@ -8,7 +7,6 @@
 # include <unistd.h>
 # include <sstream>
 # include <vector>
-
 // pathIsFile
 #include <sys/stat.h>
 

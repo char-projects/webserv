@@ -134,12 +134,24 @@ void LocationConfig::addCgi(const std::string &extension, const std::string &int
     cgi.push_back(std::make_pair(extension, interpreter));
 }
 
-size_t LocationConfig::getMaxBodySize() const {
-    return maxBodySize;
+bool LocationConfig::getCgiEnabled() const {
+    return cgiEnabled;
 }
 
 void LocationConfig::setMaxBodySize(const size_t &maxBodySize) {
     this->maxBodySize = maxBodySize;
+}
+
+void LocationConfig::setCgiEnabled(bool enabled) {
+    this->cgiEnabled = enabled;
+}
+
+std::vector<std::pair<std::string, std::string> > LocationConfig::getCgi() const {
+    return cgi;
+}
+
+void LocationConfig::addCgi(const std::string &extension, const std::string &interpreter) {
+    cgi.push_back(std::make_pair(extension, interpreter));
 }
 
 std::vector<std::string> LocationConfig::getMethods() const {

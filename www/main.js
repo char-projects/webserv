@@ -463,7 +463,6 @@ document.addEventListener('DOMContentLoaded', () => {
             input.type = 'file';
             input.multiple = true;
             input.click();
-
             input.addEventListener('change', (event) => {
                 const files = event.target.files;
                 const formData = new FormData();

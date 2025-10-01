@@ -27,6 +27,9 @@ class Request {
 		const ServerConfig& config;
 		std::string filename;
 
+		bool headers_parsed;
+        size_t content_length;
+        size_t body_bytes_received;
 		bool isMultipartFormData;
 		std::string boundary;
 		std::map<std::string, std::string> uploadedFiles;
@@ -68,6 +71,12 @@ class Request {
 		std::map<std::string, std::string> getUploadedFiles() const;
 		void parseMultipartFormData();
 		void reset();
+
+
+    	bool processReceivedData(const char* data, size_t bytes_read, bool& receiving_body, size_t& expected_body_size);
+        bool areHeadersComplete() const;
+        void parseHeaders();
+        size_t getRemainingBodySize() const;
 
 };
 

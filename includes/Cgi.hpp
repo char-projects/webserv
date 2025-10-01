@@ -5,8 +5,11 @@
 #include <map>
 #include <cstring>
 #include <sys/wait.h> // waitpid
+<<<<<<< HEAD
 #include <cstdlib>
 #include <unistd.h> // chdir
+=======
+>>>>>>> csubires
 
 class Cgi {
     private:

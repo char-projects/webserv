@@ -86,8 +86,43 @@
 > - https://dev.to/takahiro_82jp/what-types-of-nginx-configuration-files-exist-3o72
 
 
+## PROOFS
+
+// Postear JSON
+curl -X POST --header 'Content-Type: application/json' -d '{"thing": 45}' localhost:8080/anything
+
+// Borrar archivo
+curl -X DELETE localhost:8080/anything
+
+
+// Postear XML
+curl -X POST -H 'Content-Type: application/xml' -H 'Accept: application/xml' -d '<Person>
+    <FirstName>Joe</FirstName>
+    <LastName>Soap</LastName>
+</Person>' localhost:8080/anything
+
+// Postear como PARAMETROS
+curl -X POST -F FirstName=Joe -F LastName=Soap localhost:8080/anything
+
+// Subir archivo
+curl -X POST -F File=@Makefile localhost:8080/www/uploads/Makefile2
+<html><body><h1>File Upload Results</h1><ul><li>File 'File' uploaded successfully as: File_upload_1759157390.dat</li></ul></body></html>
+
+
+## ERRORES
+
+- [ ] En chrome los errores fugan código
+- [ ] no funciona el server42.com
+- [ ] Unknown directive in location block: method
+Unknown directive in location block: POST
+Unknown directive in location block: DELETE
+Unknown directive in location block: client_max_body_size
+Unknown directive in location block: 50000000
+
+
 ## TODO
 
+- [ ] Comprobar permisos a la hora de subir archivos
 - [ ] Cuando hay error al parsear el default.com continue; ????
 - [ ] Problems al usar HTTPS://
 - [ ] Comprobar que no se puede usar DELETE en carpetas que no tienen permitido el método
