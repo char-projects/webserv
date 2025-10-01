@@ -463,6 +463,7 @@ document.addEventListener('DOMContentLoaded', () => {
             input.type = 'file';
             input.multiple = true;
             input.click();
+
             input.addEventListener('change', (event) => {
                 const files = event.target.files;
                 const formData = new FormData();
@@ -491,7 +492,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             deleteButton.addEventListener('click', () => {
                                 const filename = encodeURIComponent(fileInfo.original);
 
-                                fetch(`/delete?filename=${filename}`, {
+                                fetch(`/delete/?filename=${filename}`, {
                                     method: 'DELETE'
                                 }).then(response => {
                                     if (response.ok) {

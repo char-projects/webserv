@@ -4,6 +4,7 @@ SRC						=	Cgi.cpp LocationConfig.cpp \
 							main.cpp ConfigParsing.cpp Request.cpp \
 							Response.cpp ResponseHeader.cpp \
 							ServerConfig.cpp utils.cpp Webserv.cpp \
+							ContentTypes.cpp
 
 GREEN					=	\033[0;32m
 RED						=	\033[0;31m

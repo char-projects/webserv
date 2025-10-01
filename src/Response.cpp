@@ -279,6 +279,7 @@ void Response::handleFileUpload(const std::string &content) {
 	(void) content;
 	std::string uploadDir = config.getUploadPath();
 	if (!pathIsDirectory(uploadDir)) {
+		errno = 0;
 		if (mkdir(uploadDir.c_str(), 0755) != 0 && errno != EEXIST) {
 			status_code = 500;
 			readContent(getPathStatusCode());
@@ -294,7 +295,7 @@ void Response::handleFileUpload(const std::string &content) {
 	bool firstFile = true;
 	
 	for (std::map<std::string, std::string>::const_iterator it = uploadedFiles.begin(); it != uploadedFiles.end(); ++it) {
-		std::string filename = it->first + "_upload_" + stringify(time(NULL)) + ".dat";
+		std::string filename = it->first;
 		std::string fullPath = uploadDir + "/" + filename;
 
 		std::ofstream file(fullPath.c_str(), std::ios::binary);
@@ -323,11 +324,21 @@ void Response::handleFileUpload(const std::string &content) {
 		status_code = 201;
 		// Check if request accepts JSON (for API calls)
 		std::map<std::string, std::string> headers = request.getHeaders();
+		logger(STDOUT_FILENO, SUCCESS, "JSON Response: " + jsonResponse);
+		
+		if (headers.find("Accept") != headers.end()) {
+			logger(STDOUT_FILENO, SUCCESS, "Accept header: " + headers["Accept"]);
+		} else {
+			logger(STDOUT_FILENO, SUCCESS, "No Accept header found");
+		}
+		
 		if (headers.find("Accept") != headers.end() && headers["Accept"].find("application/json") != std::string::npos) {
 			send_body = jsonResponse;
 			response_header->setContentType("application/json");
+			logger(STDOUT_FILENO, SUCCESS, "Sending JSON response");
 		} else {
 			send_body = responseBody;
+			logger(STDOUT_FILENO, SUCCESS, "Sending HTML response");
 		}
 	} else {
 		status_code = 500;
@@ -340,19 +351,53 @@ void Response::deleteContent(const std::string &path) {
 	
 	// Handle DELETE requests with query parameters (e.g., /delete?filename=...)
 	std::string uri = request.getUri();
+	logger(STDOUT_FILENO, SUCCESS, "DELETE request URI: " + uri);
+	logger(STDOUT_FILENO, SUCCESS, "DELETE request path: " + path);
+	
 	size_t queryPos = uri.find('?');
 	
 	if (queryPos != std::string::npos) {
 		std::string queryString = uri.substr(queryPos + 1);
-		std::map<std::string, std::string> params = request.getParameters();
+		logger(STDOUT_FILENO, SUCCESS, "Query string: " + queryString);
 		
-		// Check if this is a delete request with filename parameter
-		if (params.find("filename") != params.end()) {
-			std::string filename = params["filename"];
+		// Parse filename parameter manually from query string
+		std::string filename = "";
+		size_t filenamePos = queryString.find("filename=");
+		if (filenamePos != std::string::npos) {
+			size_t valueStart = filenamePos + 9; // Length of "filename="
+			size_t valueEnd = queryString.find('&', valueStart);
+			if (valueEnd == std::string::npos) {
+				valueEnd = queryString.length();
+			}
+			filename = queryString.substr(valueStart, valueEnd - valueStart);
 			
+			// URL decode the filename
+			std::string decodedFilename = "";
+			for (size_t i = 0; i < filename.length(); ++i) {
+				if (filename[i] == '%' && i + 2 < filename.length()) {
+					// Simple hex decode for common characters
+					std::string hex = filename.substr(i + 1, 2);
+					if (hex == "20") decodedFilename += ' ';
+					else if (hex == "2E") decodedFilename += '.';
+					else if (hex == "2D") decodedFilename += '-';
+					else if (hex == "5F") decodedFilename += '_';
+					else decodedFilename += filename[i]; // Keep original if not recognized
+					i += 2;
+				} else if (filename[i] == '+') {
+					decodedFilename += ' ';
+				} else {
+					decodedFilename += filename[i];
+				}
+			}
+			filename = decodedFilename;
+		}
+		
+		if (!filename.empty()) {
 			// For delete requests, check the upload directory first
 			std::string uploadDir = config.getUploadPath();
 			if (!uploadDir.empty()) {
+				logger(STDOUT_FILENO, SUCCESS, "Looking for file: " + filename + " in directory: " + uploadDir);
+				
 				// Look for files that start with the original filename
 				DIR* dir = opendir(uploadDir.c_str());
 				if (dir) {
@@ -361,9 +406,12 @@ void Response::deleteContent(const std::string &path) {
 					
 					while ((entry = readdir(dir)) != NULL) {
 						std::string entryName = entry->d_name;
+						logger(STDOUT_FILENO, SUCCESS, "Checking file: " + entryName);
+						
 						// Check if this file starts with the original filename
 						if (entryName.find(filename + "_upload_") == 0) {
 							foundFile = uploadDir + "/" + entryName;
+							logger(STDOUT_FILENO, SUCCESS, "Found matching file: " + foundFile);
 							break;
 						}
 					}
@@ -372,31 +420,42 @@ void Response::deleteContent(const std::string &path) {
 					if (!foundFile.empty()) {
 						targetPath = foundFile;
 					} else {
-						// File not found in upload directory
+						logger(STDOUT_FILENO, ERROR, "File not found in upload directory: " + filename);
 						status_code = 404;
-						readContent(getPathStatusCode());
+						send_body.clear();
 						return;
 					}
 				} else {
+					logger(STDOUT_FILENO, ERROR, "Cannot open upload directory: " + uploadDir);
 					status_code = 404;
-					readContent(getPathStatusCode());
+					send_body.clear();
 					return;
 				}
+			} else {
+				logger(STDOUT_FILENO, ERROR, "Upload directory not configured");
+				status_code = 500;
+				send_body.clear();
+				return;
 			}
 		}
 	}
+	
+	logger(STDOUT_FILENO, SUCCESS, "Attempting to delete file: " + targetPath);
 	
 	if (pathIsFile(targetPath)) {
 		if (remove(targetPath.c_str()) == 0) {
 			status_code = 204;
 			send_body.clear(); // No content for 204
+			logger(STDOUT_FILENO, SUCCESS, "File deleted successfully: " + targetPath);
 		} else {
 			status_code = 403;
-			readContent(getPathStatusCode());
+			send_body.clear();
+			logger(STDOUT_FILENO, ERROR, "Failed to delete file (permission denied): " + targetPath);
 		}
 	} else {
 		status_code = 404;
-		readContent(getPathStatusCode());
+		send_body.clear();
+		logger(STDOUT_FILENO, ERROR, "File not found: " + targetPath);
 	}
 }
 

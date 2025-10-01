@@ -17,6 +17,7 @@ Request::Request(int client_fd, const ServerConfig& config) : config(config) {
     recv_data = "";
 	isMultipartFormData = false;
 	boundary = "";
+	filename = "";
 }
 
 Request::Request(const Request &other) : config(other.config) {
@@ -27,6 +28,7 @@ Request::Request(const Request &other) : config(other.config) {
 	path = other.path;
 	http_version = other.http_version;
 	body = other.body;
+	filename = other.filename;
 }
 
 Request &Request::operator=(const Request &other) {
@@ -38,6 +40,7 @@ Request &Request::operator=(const Request &other) {
 		path = other.path;
 		http_version = other.http_version;
 		body = other.body;
+		filename = other.filename;
 	}
 	return *this;
 }
@@ -98,6 +101,14 @@ void Request::setUri(const std::string &uri) {
 
 std::string Request::getUri() const {
     return uri;
+}
+
+std::string Request::getFilename() const {
+	return filename;
+}
+
+void Request::setFilename(const std::string &filename) {
+	this->filename = filename;
 }
 
 void Request::parseParameters(const std::string &param_str) {
@@ -351,14 +362,11 @@ void Request::parseMultipartFormData() {
 			size_t filenamePos = partHeaders.find("filename=\"");
 
 			if (namePos != std::string::npos && filenamePos != std::string::npos) {
-				size_t nameStart = namePos + 6;
-				size_t nameEnd = partHeaders.find("\"", nameStart);
-				std::string fieldName = partHeaders.substr(nameStart, nameEnd - nameStart);
 				size_t filenameStart = filenamePos + 10;
 				size_t filenameEnd = partHeaders.find("\"", filenameStart);
-				std::string filename = partHeaders.substr(filenameStart, filenameEnd - filenameStart);
-				uploadedFiles[fieldName] = partBody;
-				logger(STDOUT_FILENO, INFO, "Uploaded file: " + filename + " for field: " + fieldName + " size: " + stringify(partBody.size()));
+				setFilename(partHeaders.substr(filenameStart, filenameEnd - filenameStart));
+				uploadedFiles[getFilename()] = partBody;
+				logger(STDOUT_FILENO, INFO, "Uploaded file: " + getFilename() + " size: " + stringify(partBody.size()));
 			}
 		}
 		pos = partEnd;

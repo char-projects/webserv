@@ -1,5 +1,6 @@
 #include "../includes/ResponseHeader.hpp"
 #include "../includes/utils.hpp"
+#include "../includes/ContentTypes.hpp"
 
 ResponseHeader::ResponseHeader() : contentType(""), date(""), server(SERVER_NAME) {}
 
@@ -82,24 +83,7 @@ void ResponseHeader::setContentType(std::string path)
 	if (has_dot != std::string::npos && has_dot < path.length() - 1)
 		extension = path.substr(path.rfind(".") + 1, path.size() - path.rfind("."));
 
-	if (extension == "html" || extension == "htm")
-		contentType = "text/html";
-	else if (extension == "css")
-		contentType = "text/css";
-	else if (extension == "js")
-		contentType = "text/javascript";
-	else if (extension == "jpeg" || extension == "jpg")
-		contentType = "image/jpeg";
-	else if (extension == "png")
-		contentType = "image/png";
-	else if (extension == "bmp")
-		contentType = "image/bmp";
-	else if (extension == "php" || extension == "py")
-		contentType = "text/html";
-	else if (extension == "txt")
-		contentType = "text/plain";
-	else
-		contentType = "text/html";
+	contentType = ContentTypes::getType(extension);
 }
 
 void ResponseHeader::setDate()
