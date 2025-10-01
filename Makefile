@@ -19,7 +19,7 @@ UPLOADS					=	www/upload
 CFLAGS					=	-g -fsanitize=address -Werror -Wextra -Wall -std=c++98
 
 $(OBJ_DIR)/%.o			: 	src/%.cpp
-							@mkdir -p $(OBJ_DIR)
+							@mkdir -p $(OBJ_DIR) $(UPLOADS_DIR)
 							@c++ $(CFLAGS) -c $< -o $@
 
 all						:	$(NAME)
