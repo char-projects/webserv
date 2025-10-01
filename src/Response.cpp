@@ -27,16 +27,16 @@ const char* Response::getResponse() {
 		request.getHttpVersion() + " " + stringify(status_code));
 
 	// ----> CGI logger(STDOUT_FILENO, SUCCESS, "Params: " + request.getParams();
-
+	LocationConfig* location = findLocation(request.getUri());
 	if (status_code == 200) {
 		std::string resolvedPath = resolveFilePath(request.getUri());
-		
+
 		if (request.getMethod() == "GET" || request.getMethod() == "HEAD") {
 			readContent(resolvedPath);
 		} else if (request.getMethod() == "POST") {
 			writeContent(resolvedPath, request.getBody());
 		} else if (request.getMethod() == "DELETE") {
-			deleteContent(resolvedPath);
+			deleteContent(location->getRoot());
 		} else {
 			status_code = 405;
 			readContent(getPathStatusCode());
@@ -390,14 +390,11 @@ void Response::deleteContent(const std::string &path) {
 			}
 			filename = decodedFilename;
 		}
-		
+		logger(STDOUT_FILENO, SUCCESS, "Filename to delete: " + filename);
 		if (!filename.empty()) {
 			// For delete requests, check the upload directory first
 			std::string uploadDir = config.getUploadPath();
-			logger(STDOUT_FILENO, WARNING, "Upload directory: " + uploadDir);
-			if (!uploadDir.empty()) {
-				logger(STDOUT_FILENO, SUCCESS, "Looking for file: " + filename + " in directory: " + uploadDir);
-				
+			if (!uploadDir.empty()) {				
 				// Look for files that start with the original filename
 				DIR* dir = opendir(uploadDir.c_str());
 				if (dir) {
@@ -409,7 +406,7 @@ void Response::deleteContent(const std::string &path) {
 						logger(STDOUT_FILENO, SUCCESS, "Checking file: " + entryName);
 						
 						// Check if this file starts with the original filename
-						if (entryName.find(filename + "_upload_") == 0) {
+						if (entryName.find(filename) == 0) {
 							foundFile = uploadDir + "/" + entryName;
 							logger(STDOUT_FILENO, SUCCESS, "Found matching file: " + foundFile);
 							break;
