@@ -279,6 +279,10 @@ void Response::writeContent(const std::string &path, std::string content)
 		readContent(getPathStatusCode());
 	}
 }
+
+
+
+
 void Response::handleFileUpload(const std::string &content) {
 	(void)content;
 
@@ -287,7 +291,7 @@ void Response::handleFileUpload(const std::string &content) {
 	const std::string &body_content = request.getBody();
 	logger(STDOUT_FILENO, INFO, "Body size for upload: " + stringify(body_content.size()));
 
-
+	bool success = false;
 	std::string firstBytes;
 	for (size_t i = 0; i < body_content.size() && i < 100; ++i) {
 		char c = body_content[i];
@@ -349,8 +353,8 @@ void Response::handleFileUpload(const std::string &content) {
 			return;
 		}
 	}
-
-
+	std::string jsonResponse = "[";
+	bool firstFile = true;
 	if (!uploadedFiles.empty()) {
 		logger(STDOUT_FILENO, INFO, "Using files parsed by Request class");
 		bool anyWritten = false;
@@ -383,21 +387,43 @@ void Response::handleFileUpload(const std::string &content) {
 					logger(STDOUT_FILENO, ERROR, "File write verification failed for: " + fullPath);
 				}
 
+				// Add to JSON response for frontend
+				if (!firstFile) jsonResponse += ",";
+				jsonResponse += "{\"original\":\"" + it->first + "\", \"filename\":\"" + filename + "\"}";
+				firstFile = false;
+				success = true;
 				responseBody += "<li>Uploaded: " + filename + " (" + stringify(fileData.size()) + " bytes)</li>";
 				anyWritten = true;
 			}
 		}
 
 		responseBody += "</ul></body></html>";
+		jsonResponse += "]";
 
-		if (anyWritten) {
+		if (success) {
 			status_code = 201;
-			send_body = responseBody;
+			// Check if request accepts JSON (for API calls)
+			std::map<std::string, std::string> headers = request.getHeaders();
+			logger(STDOUT_FILENO, SUCCESS, "JSON Response: " + jsonResponse);
+			
+			if (headers.find("Accept") != headers.end()) {
+				logger(STDOUT_FILENO, SUCCESS, "Accept header: " + headers["Accept"]);
+			} else {
+				logger(STDOUT_FILENO, SUCCESS, "No Accept header found");
+			}
+			
+			if (headers.find("Accept") != headers.end() && headers["Accept"].find("application/json") != std::string::npos) {
+				send_body = jsonResponse;
+				response_header->setContentType("application/json");
+				logger(STDOUT_FILENO, SUCCESS, "Sending JSON response");
+			} else {
+				send_body = responseBody;
+				logger(STDOUT_FILENO, SUCCESS, "Sending HTML response");
+			}
 		} else {
-			status_code = 400;
+			status_code = 500;
 			readContent(getPathStatusCode());
 		}
-		return;
 	}
 
 	logger(STDOUT_FILENO, WARNING, "No files parsed by Request, falling back to manual parsing");
@@ -405,76 +431,6 @@ void Response::handleFileUpload(const std::string &content) {
 
 }
 
-void Response::handleFileUpload(const std::string &content) {
-	(void) content;
-	std::string uploadDir = config.getUploadPath();
-	if (!pathIsDirectory(uploadDir)) {
-		errno = 0;
-		if (mkdir(uploadDir.c_str(), 0755) != 0 && errno != EEXIST) {
-			status_code = 500;
-			readContent(getPathStatusCode());
-			logger(STDOUT_FILENO, ERROR, "Cannot create upload directory: " + uploadDir);
-			return ;
-		}
-	}
-
-	const std::map<std::string, std::string>& uploadedFiles = request.getUploadedFiles();
-	std::string responseBody = "<html><body><h1>File Upload Results</h1><ul>";
-	std::string jsonResponse = "[";
-	bool success = false;
-	bool firstFile = true;
-	
-	for (std::map<std::string, std::string>::const_iterator it = uploadedFiles.begin(); it != uploadedFiles.end(); ++it) {
-		std::string filename = it->first;
-		std::string fullPath = uploadDir + "/" + filename;
-
-		std::ofstream file(fullPath.c_str(), std::ios::binary);
-		if (file.is_open()) {
-			file.write(it->second.c_str(), it->second.size());
-			file.close();
-			responseBody += "<li>File '" + it->first + "' uploaded successfully as: " + filename + "</li>";
-			
-			// Add to JSON response for frontend
-			if (!firstFile) jsonResponse += ",";
-			jsonResponse += "{\"original\":\"" + it->first + "\", \"filename\":\"" + filename + "\"}";
-			firstFile = false;
-			
-			success = true;
-			logger(STDOUT_FILENO, SUCCESS, "File uploaded: " + fullPath + " size: " + stringify(it->second.size()));
-		} else {
-			responseBody += "<li>Failed to upload file: " + it->first + "</li>";
-			logger(STDOUT_FILENO, ERROR, "Failed to write uploaded file: " + fullPath);
-		}
-	}
-
-	responseBody += "</ul></body></html>";
-	jsonResponse += "]";
-
-	if (success) {
-		status_code = 201;
-		// Check if request accepts JSON (for API calls)
-		std::map<std::string, std::string> headers = request.getHeaders();
-		logger(STDOUT_FILENO, SUCCESS, "JSON Response: " + jsonResponse);
-		
-		if (headers.find("Accept") != headers.end()) {
-			logger(STDOUT_FILENO, SUCCESS, "Accept header: " + headers["Accept"]);
-		} else {
-			logger(STDOUT_FILENO, SUCCESS, "No Accept header found");
-		}
-		
-		if (headers.find("Accept") != headers.end() && headers["Accept"].find("application/json") != std::string::npos) {
-			send_body = jsonResponse;
-			response_header->setContentType("application/json");
-			logger(STDOUT_FILENO, SUCCESS, "Sending JSON response");
-		} else {
-			send_body = responseBody;
-			logger(STDOUT_FILENO, SUCCESS, "Sending HTML response");
-		}
-	} else {
-		status_code = 500;
-		readContent(getPathStatusCode());
-	}
-}
 
 void Response::deleteContent(const std::string &path) {
 	std::string targetPath = path;
@@ -780,3 +736,79 @@ void Response::executeCGI(const std::string &path) {
 	}
 }
 // UNTIL HERE
+
+ /*
+ 
+ DELETEME SI NO HAY PROBLEMS
+
+void Response::handleFileUpload(const std::string &content) {
+	(void) content;
+	std::string uploadDir = config.getUploadPath();
+	if (!pathIsDirectory(uploadDir)) {
+		errno = 0;
+		if (mkdir(uploadDir.c_str(), 0755) != 0 && errno != EEXIST) {
+			status_code = 500;
+			readContent(getPathStatusCode());
+			logger(STDOUT_FILENO, ERROR, "Cannot create upload directory: " + uploadDir);
+			return ;
+		}
+	}
+
+	const std::map<std::string, std::string>& uploadedFiles = request.getUploadedFiles();
+	std::string responseBody = "<html><body><h1>File Upload Results</h1><ul>";
+	std::string jsonResponse = "[";
+	bool success = false;
+	bool firstFile = true;
+	
+	for (std::map<std::string, std::string>::const_iterator it = uploadedFiles.begin(); it != uploadedFiles.end(); ++it) {
+		std::string filename = it->first;
+		std::string fullPath = uploadDir + "/" + filename;
+
+		std::ofstream file(fullPath.c_str(), std::ios::binary);
+		if (file.is_open()) {
+			file.write(it->second.c_str(), it->second.size());
+			file.close();
+			responseBody += "<li>File '" + it->first + "' uploaded successfully as: " + filename + "</li>";
+			
+			// Add to JSON response for frontend
+			if (!firstFile) jsonResponse += ",";
+			jsonResponse += "{\"original\":\"" + it->first + "\", \"filename\":\"" + filename + "\"}";
+			firstFile = false;
+			
+			success = true;
+			logger(STDOUT_FILENO, SUCCESS, "File uploaded: " + fullPath + " size: " + stringify(it->second.size()));
+		} else {
+			responseBody += "<li>Failed to upload file: " + it->first + "</li>";
+			logger(STDOUT_FILENO, ERROR, "Failed to write uploaded file: " + fullPath);
+		}
+	}
+
+	responseBody += "</ul></body></html>";
+	jsonResponse += "]";
+
+	if (success) {
+		status_code = 201;
+		// Check if request accepts JSON (for API calls)
+		std::map<std::string, std::string> headers = request.getHeaders();
+		logger(STDOUT_FILENO, SUCCESS, "JSON Response: " + jsonResponse);
+		
+		if (headers.find("Accept") != headers.end()) {
+			logger(STDOUT_FILENO, SUCCESS, "Accept header: " + headers["Accept"]);
+		} else {
+			logger(STDOUT_FILENO, SUCCESS, "No Accept header found");
+		}
+		
+		if (headers.find("Accept") != headers.end() && headers["Accept"].find("application/json") != std::string::npos) {
+			send_body = jsonResponse;
+			response_header->setContentType("application/json");
+			logger(STDOUT_FILENO, SUCCESS, "Sending JSON response");
+		} else {
+			send_body = responseBody;
+			logger(STDOUT_FILENO, SUCCESS, "Sending HTML response");
+		}
+	} else {
+		status_code = 500;
+		readContent(getPathStatusCode());
+	}
+}
+ */
