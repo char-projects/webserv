@@ -284,9 +284,10 @@ void Response::writeContent(const std::string &path, std::string content)
 
 void Response::handleFileUpload(const std::string &content) {
 	(void) content;
-	LocationConfig* loc = findLocation("/upload/");
+	std::string pathStr = request.getPath();
+	std::string shortPath = pathStr.substr(pathStr.find_last_of('/')); // Delete everything before last /
+	LocationConfig* loc = findLocation(shortPath + "/");
 	std::string uploadDir = loc->getRoot();
-	logger(STDOUT_FILENO, SUCCESS, "Upload directory: " + uploadDir);
 	if (!pathIsDirectory(uploadDir)) {
 		errno = 0;
 		if (mkdir(uploadDir.c_str(), 0755) != 0 && errno != EEXIST) {
@@ -397,10 +398,11 @@ void Response::deleteContent(const std::string &path) {
 			}
 			filename = decodedFilename;
 		}
-		logger(STDOUT_FILENO, SUCCESS, "Filename to delete: " + filename);
 		if (!filename.empty()) {
 			// For delete requests, check the upload directory first
-			LocationConfig* loc = findLocation("/upload/");
+			std::string pathStr = request.getPath();
+			std::string shortPath = pathStr.substr(pathStr.find('/'));
+			LocationConfig* loc = findLocation(shortPath + "/");
 			std::string uploadDir = loc->getRoot();
 			if (!uploadDir.empty()) {				
 				// Look for files that start with the original filename
@@ -411,12 +413,10 @@ void Response::deleteContent(const std::string &path) {
 					
 					while ((entry = readdir(dir)) != NULL) {
 						std::string entryName = entry->d_name;
-						logger(STDOUT_FILENO, SUCCESS, "Checking file: " + entryName);
 						
 						// Check if this file starts with the original filename
 						if (entryName.find(filename) == 0) {
 							foundFile = uploadDir + "/" + entryName;
-							logger(STDOUT_FILENO, SUCCESS, "Found matching file: " + foundFile);
 							break;
 						}
 					}
@@ -444,9 +444,7 @@ void Response::deleteContent(const std::string &path) {
 			}
 		}
 	}
-	
-	logger(STDOUT_FILENO, SUCCESS, "Attempting to delete file: " + targetPath);
-	
+		
 	if (pathIsFile(targetPath)) {
 		if (remove(targetPath.c_str()) == 0) {
 			status_code = 204;
@@ -520,7 +518,6 @@ void Response::ListDirectory(const std::string& path, const std::string& uri) {
 }
 
 LocationConfig* Response::findLocation(const std::string& uri) {
-	logger(STDOUT_FILENO, INFO, "Finding location for URI: " + uri);
 	LocationConfig* best_match = NULL;
 	size_t best_length = 0;
 
@@ -543,7 +540,6 @@ LocationConfig* Response::findLocation(const std::string& uri) {
 			best_length = location_path.length();
 		}
 	}
-	logger(STDOUT_FILENO, INFO, "Best matching location path: " + (best_match ? best_match->getLocationPath() : "None"));
 	return best_match;
 }
 
@@ -671,13 +667,11 @@ std::string Response::resolveFilePath(const std::string &uri) {
 	std::string root;
 	if (loc && !loc->getRoot().empty()) {
 		root = loc->getRoot();
-		logger(STDOUT_FILENO, SUCCESS, "Using location root: " + root + " for URI: " + uri);
 	} else {
 		root = config.getRoot();
 		if (root.empty()) {
 			root = "www";
 		}
-		logger(STDOUT_FILENO, SUCCESS, "Using server root: " + root + " for URI: " + uri);
 	}
 	
 	// Normalize the root path
@@ -708,7 +702,6 @@ std::string Response::resolveFilePath(const std::string &uri) {
 	}
 	
 	filePath = normalizePath(filePath);
-	logger(STDOUT_FILENO, SUCCESS, "Resolved file path: " + filePath);
 	return filePath;
 }
 // UNTIL HERE
