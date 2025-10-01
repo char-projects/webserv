@@ -191,14 +191,19 @@ void Request::parseRecvData() {
 	std::string clean_uri = (query_pos != std::string::npos) ? uri_local.substr(0, query_pos) : uri_local;
 	clean_uri = normalizePath(clean_uri);
 
-	uri = clean_uri;
 	if (query_pos != std::string::npos) {
 		std::string param_str = uri_local.substr(query_pos + 1);
 		parseParameters(param_str);
 	}
 
-	method = method_local;
-	http_version = http_version_local;
+	setMethod(method_local);
+	setHttpVersion(http_version_local);
+	setUri(clean_uri);
+	if (query_pos != std::string::npos) {
+		uri = uri_local; // Keep full URI with query string for getUri()
+	}
+	
+	// Set a default path (will be overridden by Response::resolveFilePath)
 	std::string serverRoot = config.getRoot();
 	if (serverRoot.empty())
 		serverRoot = "www";

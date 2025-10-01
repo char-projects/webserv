@@ -29,12 +29,14 @@ const char* Response::getResponse() {
 	// ----> CGI logger(STDOUT_FILENO, SUCCESS, "Params: " + request.getParams();
 
 	if (status_code == 200) {
+		std::string resolvedPath = resolveFilePath(request.getUri());
+		
 		if (request.getMethod() == "GET" || request.getMethod() == "HEAD") {
-			readContent(request.getPath());
+			readContent(resolvedPath);
 		} else if (request.getMethod() == "POST") {
-			writeContent(request.getPath(), request.getBody());
+			writeContent(resolvedPath, request.getBody());
 		} else if (request.getMethod() == "DELETE") {
-			deleteContent(request.getPath());
+			deleteContent(resolvedPath);
 		} else {
 			status_code = 405;
 			readContent(getPathStatusCode());
@@ -351,9 +353,6 @@ void Response::deleteContent(const std::string &path) {
 	
 	// Handle DELETE requests with query parameters (e.g., /delete?filename=...)
 	std::string uri = request.getUri();
-	logger(STDOUT_FILENO, SUCCESS, "DELETE request URI: " + uri);
-	logger(STDOUT_FILENO, SUCCESS, "DELETE request path: " + path);
-	
 	size_t queryPos = uri.find('?');
 	
 	if (queryPos != std::string::npos) {
@@ -395,6 +394,7 @@ void Response::deleteContent(const std::string &path) {
 		if (!filename.empty()) {
 			// For delete requests, check the upload directory first
 			std::string uploadDir = config.getUploadPath();
+			logger(STDOUT_FILENO, WARNING, "Upload directory: " + uploadDir);
 			if (!uploadDir.empty()) {
 				logger(STDOUT_FILENO, SUCCESS, "Looking for file: " + filename + " in directory: " + uploadDir);
 				
@@ -420,7 +420,7 @@ void Response::deleteContent(const std::string &path) {
 					if (!foundFile.empty()) {
 						targetPath = foundFile;
 					} else {
-						logger(STDOUT_FILENO, ERROR, "File not found in upload directory: " + filename);
+						logger(STDOUT_FILENO, ERROR, "File " + filename + " not found in upload directory: " + uploadDir);
 						status_code = 404;
 						send_body.clear();
 						return;
@@ -648,5 +648,54 @@ void Response::executeCGI(const std::string &path) {
 		status_code = 500;
 		send_body = "CGI script produced no output";
 	}
+}
+
+std::string Response::resolveFilePath(const std::string &uri) {
+	// Find the matching location
+	LocationConfig* loc = findLocation(uri);
+	
+	// Determine the root directory
+	std::string root;
+	if (loc && !loc->getRoot().empty()) {
+		root = loc->getRoot();
+		logger(STDOUT_FILENO, SUCCESS, "Using location root: " + root + " for URI: " + uri);
+	} else {
+		root = config.getRoot();
+		if (root.empty()) {
+			root = "www";
+		}
+		logger(STDOUT_FILENO, SUCCESS, "Using server root: " + root + " for URI: " + uri);
+	}
+	
+	// Normalize the root path
+	root = normalizePath(root);
+	if (!root.empty() && root[root.length()-1] == '/') {
+		root = root.substr(0, root.length()-1);
+	}
+	
+	// Extract clean URI (without query parameters)
+	std::string cleanUri = uri;
+	size_t queryPos = uri.find('?');
+	if (queryPos != std::string::npos) {
+		cleanUri = uri.substr(0, queryPos);
+	}
+	cleanUri = normalizePath(cleanUri);
+	
+	// Build the file path
+	std::string filePath;
+	if (cleanUri == "/") {
+		filePath = root;
+		if (!config.getIndexFiles().empty()) {
+			filePath += "/" + config.getIndexFiles()[0];
+		} else {
+			filePath += "/index.html";
+		}
+	} else {
+		filePath = root + cleanUri;
+	}
+	
+	filePath = normalizePath(filePath);
+	logger(STDOUT_FILENO, SUCCESS, "Resolved file path: " + filePath);
+	return filePath;
 }
 // UNTIL HERE

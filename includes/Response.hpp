@@ -54,6 +54,7 @@ class Response {
 		void				reset();
 		bool				shouldExecuteAsCGI(const std::string &path);
 		void				executeCGI(const std::string &path);
+		std::string			resolveFilePath(const std::string &uri);
 };
 
 #endif
