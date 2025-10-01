@@ -1,5 +1,21 @@
 #include "../includes/LocationConfig.hpp"
 
+LocationConfig::LocationConfig() {
+    filePath = "";
+    locationPath = "";
+    autoIndex = false;
+    tryFiles.clear();
+    cgiIncludes.clear();
+    fastcgiPass = "";
+    fastcgiIndex = "";
+    fastcgiParams.clear();
+    cgiEnabled = false;
+    cgi.clear();
+    methods.clear();
+    root = "/";
+    maxBodySize = 0;
+}
+
 LocationConfig::LocationConfig(ServerConfig* server) {
     filePath = "";
     locationPath = "";

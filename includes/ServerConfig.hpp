@@ -15,7 +15,6 @@ class ServerConfig {
         std::vector<std::string> indexFiles;
         size_t maxBodySize;
         std::vector<std::string> methods;
-		std::string uploadPath;
 
     public:
         ServerConfig();
@@ -37,8 +36,6 @@ class ServerConfig {
         void setMaxBodySize(size_t maxBodySize);
         std::vector<std::string> getMethods() const;
         void setMethods(const std::vector<std::string> &methods);
-        std::string getUploadPath() const;
-        void setUploadPath(const std::string &uploadPath);
 };
 
 #endif

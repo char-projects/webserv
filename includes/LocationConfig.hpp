@@ -25,6 +25,7 @@ class LocationConfig {
         std::string root;
 
     public:
+        LocationConfig();
         LocationConfig(ServerConfig* server);
         LocationConfig(const LocationConfig &other);
         LocationConfig &operator=(const LocationConfig &other);

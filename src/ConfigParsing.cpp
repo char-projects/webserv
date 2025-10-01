@@ -191,15 +191,7 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                         std::cerr << "Error: Expected size after 'client_max_body_size'" << std::endl;
                         i++;
                     }
-				} else if (tokens[i] == "upload_path") {
-					if (i + 1 < tokens.size()) {
-						server->setUploadPath(tokens[i + 1]);
-						i += 2;
-					} else {
-						std::cerr << "Error: Expected path after 'upload_path'" << std::endl;
-						i++;
-					}
-                } else if (tokens[i] == "method") {
+				} else if (tokens[i] == "method") {
                     std::vector<std::string> methods;
                     size_t j = i + 1;
                     while (j < tokens.size() && (tokens[j] == "GET" || tokens[j] == "POST" || tokens[j] == "DELETE" || tokens[j] == "HEAD")) {

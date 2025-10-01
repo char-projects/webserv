@@ -1,6 +1,6 @@
 #include "../includes/ServerConfig.hpp"
 
-ServerConfig::ServerConfig() : host(""), ports(), root(""), errorPages(), indexFiles(), maxBodySize(MAX_BODY_SIZE), uploadPath("uploads") {}
+ServerConfig::ServerConfig() : host(""), ports(), root(""), errorPages(), indexFiles(), maxBodySize(MAX_BODY_SIZE) {}
 
 ServerConfig::ServerConfig(const ServerConfig &other) {
     *this = other;
@@ -14,7 +14,6 @@ ServerConfig &ServerConfig::operator=(const ServerConfig &other) {
         this->errorPages = other.errorPages;
         this->indexFiles = other.indexFiles;
         this->maxBodySize = other.maxBodySize;
-		 this->uploadPath = other.uploadPath;
     }
     return *this;
 }
@@ -75,11 +74,4 @@ std::vector<std::string> ServerConfig::getMethods() const {
 
 void ServerConfig::setMethods(const std::vector<std::string> &methods) {
 	this->methods = methods;
-}
-std::string ServerConfig::getUploadPath() const {
-	return (uploadPath);
-}
-
-void ServerConfig::setUploadPath(const std::string &uploadPath) {
-	this->uploadPath = uploadPath;
 }

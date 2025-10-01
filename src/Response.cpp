@@ -36,7 +36,12 @@ const char* Response::getResponse() {
 		} else if (request.getMethod() == "POST") {
 			writeContent(resolvedPath, request.getBody());
 		} else if (request.getMethod() == "DELETE") {
-			deleteContent(location->getRoot());
+			if (location)
+				deleteContent(location->getRoot());
+			else {
+				status_code = 404;
+				readContent(getPathStatusCode());
+			}
 		} else {
 			status_code = 405;
 			readContent(getPathStatusCode());
@@ -279,7 +284,9 @@ void Response::writeContent(const std::string &path, std::string content)
 
 void Response::handleFileUpload(const std::string &content) {
 	(void) content;
-	std::string uploadDir = config.getUploadPath();
+	LocationConfig* loc = findLocation("/upload/");
+	std::string uploadDir = loc->getRoot();
+	logger(STDOUT_FILENO, SUCCESS, "Upload directory: " + uploadDir);
 	if (!pathIsDirectory(uploadDir)) {
 		errno = 0;
 		if (mkdir(uploadDir.c_str(), 0755) != 0 && errno != EEXIST) {
@@ -393,7 +400,8 @@ void Response::deleteContent(const std::string &path) {
 		logger(STDOUT_FILENO, SUCCESS, "Filename to delete: " + filename);
 		if (!filename.empty()) {
 			// For delete requests, check the upload directory first
-			std::string uploadDir = config.getUploadPath();
+			LocationConfig* loc = findLocation("/upload/");
+			std::string uploadDir = loc->getRoot();
 			if (!uploadDir.empty()) {				
 				// Look for files that start with the original filename
 				DIR* dir = opendir(uploadDir.c_str());
@@ -512,23 +520,31 @@ void Response::ListDirectory(const std::string& path, const std::string& uri) {
 }
 
 LocationConfig* Response::findLocation(const std::string& uri) {
-	LocationConfig* matching_location = NULL;
-	size_t best_match_length = 0;
+	logger(STDOUT_FILENO, INFO, "Finding location for URI: " + uri);
+	LocationConfig* best_match = NULL;
+	size_t best_length = 0;
 
 	for (std::vector<LocationConfig *>::const_iterator it = locations.begin(); it != locations.end(); ++it) {
 		std::string location_path = (*it)->getLocationPath();
-
-		if (uri == location_path ||
-			uri.find(location_path + "/") == 0 ||
-			(location_path != "/" && uri.find(location_path) == 0)) {
-
-			if (location_path.length() > best_match_length) {
-				best_match_length = location_path.length();
-				matching_location = *it;
+		if (location_path == "/") {
+			if (!best_match) {
+				best_match = *it;
+				best_length = 1;
 			}
+			continue;
+		}
+		if (uri == location_path ||
+			(uri.length() > location_path.length() && uri.find(location_path + "/") == 0) ||
+			(uri.length() >= location_path.length() &&
+			 uri.find(location_path) == 0 &&
+			 (uri.length() == location_path.length() ||
+			  uri[location_path.length()] == '/' || uri[location_path.length()] == '\0'))) {
+			best_match = *it;
+			best_length = location_path.length();
 		}
 	}
-	return (matching_location);
+	logger(STDOUT_FILENO, INFO, "Best matching location path: " + (best_match ? best_match->getLocationPath() : "None"));
+	return best_match;
 }
 
 size_t Response::getStatusCode() const {
