@@ -6,7 +6,7 @@
 # include <map>
 # include <unistd.h>
 # include <string.h>
-// select()
+// select
 # include <sys/select.h>
 # include <sys/time.h>
 // sockets
@@ -16,7 +16,6 @@
 // socket non-blocking
 # include <fcntl.h>
 # include <iomanip>
-
 // Wervserv
 # include "Request.hpp"
 # include "Response.hpp"
@@ -36,15 +35,18 @@ struct ClientState {
 	bool			ready_to_read;
 	bool			ready_to_write;
 	bool			its_served;
+	bool			receiving_body;
 	ServerConfig	*config;
 	Request			*request;
 	Response		*response;
 	time_t			last_activity;
+	size_t			expected_body_size;
+	size_t			total_bytes_received;
 };
 
 class Webserv {
 
-    public:
+	public:
 		Webserv(ConfigParsing& config);
 		~Webserv();
 

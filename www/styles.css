@@ -610,6 +610,12 @@ body {
     transform: translateX(0);
 }
 
+.file-item.hidden {
+    visibility: hidden;
+    display: none;
+}
+
+
 /* Scrollbar */
 ::-webkit-scrollbar {
     width: 8px;

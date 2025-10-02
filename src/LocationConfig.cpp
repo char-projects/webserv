@@ -150,6 +150,7 @@ void LocationConfig::addCgi(const std::string &extension, const std::string &int
     cgi.push_back(std::make_pair(extension, interpreter));
 }
 
+
 size_t LocationConfig::getMaxBodySize() const {
     return maxBodySize;
 }

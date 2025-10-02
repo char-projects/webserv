@@ -394,7 +394,9 @@ void ConfigParsing::printConfig() const {
     size_t locCount = 1;
     for (std::map<ServerConfig*, std::vector<LocationConfig*> >::const_iterator it = locations.begin(); it != locations.end(); ++it) {
         for (size_t i = 0; i < it->second.size(); i++) {
-            std::cout << "Location: " << it->second[i]->getLocationPath() << std::endl;
+            std::cout << "Location " << locCount << ":" << std::endl;
+            if (!it->second[i]->getLocationPath().empty())
+                std::cout << "  Path: " << it->second[i]->getLocationPath() << std::endl;
             std::cout << "  AutoIndex: " << (it->second[i]->getAutoIndex() ? "on" : "off") << std::endl;
             if (!it->second[i]->getRedirects().empty()) {
                 std::cout << "  Redirects: ";

@@ -463,14 +463,13 @@ document.addEventListener('DOMContentLoaded', () => {
             input.type = 'file';
             input.multiple = true;
             input.click();
-
             input.addEventListener('change', (event) => {
                 const files = event.target.files;
                 const formData = new FormData();
                 for (let i = 0; i < files.length; i++) {
                     formData.append('files[]', files[i]);
                 }
-                fetch('/upload', { 
+                fetch('/uploads', { 
                     method: 'POST', 
                     body: formData,
                     headers: {
@@ -485,25 +484,36 @@ document.addEventListener('DOMContentLoaded', () => {
                             const li = document.createElement('li');
                             li.textContent = fileInfo.original;
 
+
+
+
+
+
                             // Create delete button
                             const deleteButton = document.createElement('button');
                             deleteButton.textContent = 'Delete';
                             deleteButton.className = 'delete-button';
                             deleteButton.addEventListener('click', () => {
                                 const filename = encodeURIComponent(fileInfo.original);
+fetch(`/uploads/${filename}`, { 
+    method: 'DELETE', 
+    body: formData,
+    headers: {
+        'Accept': 'text/html'
+    }
+})
+.then(response => {
+    if (response.ok) {
+        alert('Delete successful!');
+    } else {
+        alert('Delete failed.');
+    }
+})
+.catch(error => {
+    console.error('Delete failed:', error);
+    alert('Delete failed.');
+});
 
-                                fetch(`/delete/?filename=${filename}`, {
-                                    method: 'DELETE'
-                                }).then(response => {
-                                    if (response.ok) {
-                                        li.remove();
-                                        alert('File deleted successfully!');
-                                    } else {
-                                        alert('Delete failed.');
-                                    }
-                                }).catch(() => {
-                                    alert('Delete failed.');
-                                });
                             });
 
                             li.appendChild(deleteButton);
@@ -517,7 +527,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                     }
                 }).catch(() => {
-                    alert('Upload failed.');
+                    alert('Delete failed.');
                 });
             });
         });

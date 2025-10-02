@@ -4,7 +4,7 @@ std::string ContentTypes::getType(const std::string &extension) {
 	const char *type = getType(extension.c_str());
 	if (type)
 		return std::string(type);
-	return std::string("application/octet-stream");
+	return std::string("text/html");
 }
 
 const char *ContentTypes::getType(const char *extension) {

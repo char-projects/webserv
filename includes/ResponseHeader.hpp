@@ -19,8 +19,6 @@
 # define RESPONSE_504 "HTTP/1.1 504 Gateway Timeout\r\nContent-Type: text/html\r\nContent-Length: {}\r\nConnection: close\r\n\r\n"
 # define RESPONSE_520 "HTTP/1.1 520 Web Server Returned an Unknown Error\r\nContent-Type: text/html\r\nContent-Length: {}\r\nConnection: close\r\n\r\n"
 
-
-
 class ResponseHeader {
 
 	public:

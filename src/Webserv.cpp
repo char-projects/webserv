@@ -63,6 +63,7 @@ void Webserv::initializePorts() {
 				throw std::runtime_error("Error setting socket non-blocking " + stringify(ntohs(server_addr.sin_port)));
 
 			fds_sockets[fd_socket] = *it;
+			logger(STDOUT_FILENO, INFO, (*it)->getHost() + " Listening at the port " + stringify(*it2));
 		}
 	}
 }
@@ -106,6 +107,14 @@ void Webserv::handleConnections(fd_set &read_fds) {
 				continue;
 			}
 
+
+			int flags = fcntl(client_fd, F_GETFL, 0);
+			if (flags == -1 || fcntl(client_fd, F_SETFL, flags | O_NONBLOCK) == -1) {
+				logger(STDOUT_FILENO, ERROR, "Error setting client socket non-blocking");
+				close(client_fd);
+				continue;
+			}
+
 			const std::map<ServerConfig *, std::vector<LocationConfig*> >& map_loc = config.getLocations();
 			std::map<ServerConfig *, std::vector<LocationConfig*> >::const_iterator loc = map_loc.find((*it).second);
 			if (loc != map_loc.end())
@@ -116,11 +125,15 @@ void Webserv::handleConnections(fd_set &read_fds) {
 				clients_state[client_fd].response = new Response(client_fd, *clients_state[client_fd].request, *it->second, loc->second);
 				clients_state[client_fd].last_activity = time(NULL);
 				clients_state[client_fd].ready_to_read = true;
+				clients_state[client_fd].ready_to_write = false;
+				clients_state[client_fd].receiving_body = false;
+				clients_state[client_fd].expected_body_size = 0;
+				clients_state[client_fd].total_bytes_received = 0;
 				clients_state[client_fd].request->reset();
-				logger(STDOUT_FILENO, INFO, "New client connected in port " + stringify(client_fd));
+				logger(STDOUT_FILENO, INFO, "New client connected: " + stringify(client_fd));
 			} else {
 				close(client_fd);
-				logger(STDOUT_FILENO, ERROR, "New client no connected in port " + stringify(client_fd));
+				logger(STDOUT_FILENO, ERROR, "New client not connected: " + stringify(client_fd));
 			}
 		}
 	}
@@ -129,14 +142,39 @@ void Webserv::handleConnections(fd_set &read_fds) {
 void Webserv::clientRequest(int client_fd, bool &close_connection) {
 	std::vector<char> buffer(BUFFER_RECV_SIZE);
 
-	size_t bytes_read = recv(client_fd, buffer.data(), buffer.size(), 0);
+	ssize_t bytes_read = recv(client_fd, buffer.data(), buffer.size() - 1, 0);
 
 	if (bytes_read <= 0) {
+		if (bytes_read == 0) {
+			logger(STDOUT_FILENO, INFO, "Client " + stringify(client_fd) + " closed connection");
+		} else {
+			if (errno != EAGAIN && errno != EWOULDBLOCK) {
+				logger(STDOUT_FILENO, ERROR, "recv failed for client " + stringify(client_fd) + ", errno: " + stringify(errno));
+			}
+		}
 		close_connection = true;
 	} else {
-		clients_state[client_fd].ready_to_read = false;
-		clients_state[client_fd].request->setRecvData(buffer.data(), bytes_read);
-		clients_state[client_fd].ready_to_write = true;
+		buffer[bytes_read] = '\0';
+		clients_state[client_fd].total_bytes_received += bytes_read;
+
+		logger(STDOUT_FILENO, INFO, "Received " + stringify(bytes_read) + " bytes from client " + stringify(client_fd) +
+			   " (total: " + stringify(clients_state[client_fd].total_bytes_received) + " bytes)");
+
+
+		bool should_continue_receiving = clients_state[client_fd].request->processReceivedData(buffer.data(), bytes_read, clients_state[client_fd].receiving_body, clients_state[client_fd].expected_body_size);
+
+		if (!should_continue_receiving) {
+
+			clients_state[client_fd].ready_to_read = false;
+			clients_state[client_fd].ready_to_write = true;
+			logger(STDOUT_FILENO, INFO, "Request complete for client " + stringify(client_fd) + ", ready for response");
+		} else {
+
+			clients_state[client_fd].ready_to_read = true;
+			logger(STDOUT_FILENO, INFO, "Continuing to receive data for client " + stringify(client_fd));
+		}
+
+		clients_state[client_fd].last_activity = time(NULL);
 	}
 }
 
@@ -197,11 +235,15 @@ void Webserv::start() {
 				close_connection = true;
 			}
 
-			if (!close_connection && clients_state[client_fd].ready_to_read && FD_ISSET(client_fd, &read_fds))
+			if (!close_connection && clients_state[client_fd].ready_to_read && FD_ISSET(client_fd, &read_fds)) {
+				logger(STDOUT_FILENO, INFO, "Reading from client " + stringify(client_fd));
 				clientRequest(client_fd, close_connection);
+			}
 
-			if (!close_connection && clients_state[client_fd].ready_to_write && FD_ISSET(client_fd, &write_fds))
+			if (!close_connection && clients_state[client_fd].ready_to_write && FD_ISSET(client_fd, &write_fds)) {
+				logger(STDOUT_FILENO, INFO, "Writing to client " + stringify(client_fd));
 				clientResponse(client_fd, close_connection);
+			}
 
 			if (close_connection) {
 				if (clients_state[client_fd].request) {
