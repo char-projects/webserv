@@ -16,6 +16,7 @@ class LocationConfig {
         std::vector<std::string> cgiIncludes;
         std::string fastcgiPass;
         std::string fastcgiIndex;
+		std::string upload_path;
         std::vector<std::pair<std::string, std::string> > fastcgiParams;
         bool cgiEnabled;
 	    std::vector<std::pair<std::string, std::string> > cgi;
@@ -60,6 +61,9 @@ class LocationConfig {
         void addMethods(const std::vector<std::string> &methods);
         std::string getRoot() const;
         void setRoot(const std::string &root);
+
+		std::string getUploadPath() const;
+		void setUploadPath(const std::string &uploadPath);
 };
 
 #endif

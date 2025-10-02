@@ -26,12 +26,19 @@ const char* Response::getResponse() {
 		" Request:  " + request.getMethod() + " " + request.getPath() + " " +
 		request.getHttpVersion() + " " + stringify(status_code));
 
-<<<<<<< HEAD
-	// ----> CGI logger(STDOUT_FILENO, SUCCESS, "Params: " + request.getParams();
 	LocationConfig* location = findLocation(request.getUri());
-=======
+	if (location && !location->getRedirects().empty()) {
+		std::vector<std::pair<std::string, std::string> > redirects = location->getRedirects();
+		if (!redirects.empty()) {
+			status_code = 301;
+			response_header->setLocation(redirects[0].second);
+			response_header->setContentLength(0);
+			send_header = response_header->getHeader(status_code);
+			send_response = send_header;
+			return send_response.data();
+		}
+	}
 
->>>>>>> csubires
 	if (status_code == 200) {
 		std::string resolvedPath = resolveFilePath(request.getUri());
 
@@ -99,7 +106,7 @@ const std::string Response::getPathStatusCode() {
 			error_page_path = "src/error_pages/400.html";
 			break;
 		case 403:
-			error_page_path = "src/error_pages/403.html";
+			error_page_path = ERROR_403_HTML;
 			break;
 		case 404:
 			error_page_path = "src/error_pages/404.html";
@@ -111,7 +118,7 @@ const std::string Response::getPathStatusCode() {
 			error_page_path = "src/error_pages/413.html";
 			break;
 		case 500:
-			error_page_path = "src/error_pages/500.html";
+			error_page_path = ERROR_500_HTML;
 			break;
 		case 502:
 			error_page_path = "src/error_pages/502.html";
@@ -126,7 +133,7 @@ const std::string Response::getPathStatusCode() {
 			error_page_path = "";
 			break;
 		default:
-			error_page_path = "src/error_pages/500.html";
+			error_page_path = ERROR_500_HTML;
 	}
 
 	std::vector<std::pair<std::string, int> > pairs = config.getErrorPages();
@@ -137,13 +144,11 @@ const std::string Response::getPathStatusCode() {
 		}
 	}
 
-
-
 	return (error_page_path);
 }
 
-void Response::readContent(const std::string &path) {
 
+void Response::readContent(const std::string &path) {
 	if (++counter > 2) {
 		status_code = 500;
 		send_body.clear();
@@ -151,19 +156,32 @@ void Response::readContent(const std::string &path) {
 		return ;
 	}
 
-	std::string request_uri = request.getUri();
-	LocationConfig* loc =  findLocation(request.getUri());
-	if (loc && !loc->getRedirects().empty()) {
-		std::vector<std::pair<std::string, std::string> > redirects = loc->getRedirects();
-		if (!redirects.empty()) {
-			status_code = 301;
-			response_header->setLocation(redirects[0].second);
-			send_body.clear();
-			return ;
+	if (status_code != 200 && status_code != 201 && status_code != 204) {
+		std::string error_path = getPathStatusCode();
+		if (pathIsFile(error_path)) {
+			std::ifstream file(error_path.c_str());
+			if (file.is_open()) {
+				std::stringstream buffer;
+				buffer << file.rdbuf();
+				send_body = buffer.str();
+				file.close();
+			} else {
+				send_body = ERROR_403_HTML;
+			}
+		} else {
+			send_body = ERROR_403_HTML;
 		}
+		return ;
 	}
 
 	PathType result = checkPath(path);
+	if (result == PATH_NOT_EXISTS) {
+		status_code = 404;
+		readContent(getPathStatusCode());
+		return ;
+	}
+	std::string request_uri = request.getUri();
+	LocationConfig* loc =  findLocation(request.getUri());
 	std::ifstream file;
 	std::stringstream buffer;
 	std::string index_file;
@@ -175,12 +193,10 @@ void Response::readContent(const std::string &path) {
 		return ;
 	}
 
-	// ADDED THIS
 	if (shouldExecuteAsCGI(path)) {
-    	executeCGI(path);
-    	return;
+		executeCGI(path);
+		return ;
 	}
-	// UNTIL HERE
 
 	switch (result) {
 		case PATH_IS_FILE:
@@ -210,7 +226,20 @@ void Response::readContent(const std::string &path) {
 				ListDirectory(path, request.getUri());
 			} else {
 				status_code = 403;
-				readContent(getPathStatusCode());
+
+				std::string error_path = getPathStatusCode();
+				if (pathIsFile(error_path)) {
+					std::ifstream file(error_path.c_str());
+					if (file.is_open()) {
+						std::stringstream buffer;
+						buffer << file.rdbuf();
+						send_body = buffer.str();
+						file.close();
+					}
+				}
+				if (send_body.empty()) {
+					send_body = ERROR_403_HTML;
+				}
 			}
 			break;
 
@@ -246,8 +275,6 @@ void Response::readContent(const std::string &path) {
 		default:
 			if (status_code != 404) {
 				status_code = 404;
-
-
 				readContent(getPathStatusCode());
 			} else {
 				status_code = 520;
@@ -292,16 +319,21 @@ void Response::writeContent(const std::string &path, std::string content)
 	}
 }
 
-
-
-
 void Response::handleFileUpload(const std::string &content) {
-<<<<<<< HEAD
 	(void) content;
 	std::string pathStr = request.getPath();
-	std::string shortPath = pathStr.substr(pathStr.find_last_of('/')); // Delete everything before last /
+	std::string shortPath = pathStr.substr(pathStr.find_last_of('/'));
 	LocationConfig* loc = findLocation(shortPath + "/");
-	std::string uploadDir = loc->getRoot();
+	std::string uploadDir;
+
+	if (loc && !loc->getUploadPath().empty()) {
+		uploadDir = loc->getUploadPath();
+	} else if (loc && !loc->getRoot().empty()) {
+		uploadDir = loc->getRoot();
+	} else {
+		uploadDir = UPLOADS;
+	}
+
 	if (!pathIsDirectory(uploadDir)) {
 		errno = 0;
 		if (mkdir(uploadDir.c_str(), 0755) != 0 && errno != EEXIST) {
@@ -309,189 +341,88 @@ void Response::handleFileUpload(const std::string &content) {
 			readContent(getPathStatusCode());
 			logger(STDOUT_FILENO, ERROR, "Cannot create upload directory: " + uploadDir);
 			return ;
-=======
-	(void)content;
-
-	logger(STDOUT_FILENO, INFO, "=== START FILE UPLOAD HANDLING ===");
-
-	const std::string &body_content = request.getBody();
-	logger(STDOUT_FILENO, INFO, "Body size for upload: " + stringify(body_content.size()));
-
-	bool success = false;
-	std::string firstBytes;
-	for (size_t i = 0; i < body_content.size() && i < 100; ++i) {
-		char c = body_content[i];
-		if (c >= 32 && c <= 126) {
-			firstBytes += c;
-		} else {
-			char hex[5];
-			snprintf(hex, sizeof(hex), "\\x%02X", (unsigned char)c);
-			firstBytes += hex;
->>>>>>> csubires
 		}
 	}
-	logger(STDOUT_FILENO, INFO, "First 100 bytes (hex for non-printable): " + firstBytes);
-
 
 	const std::map<std::string, std::string>& uploadedFiles = request.getUploadedFiles();
-	logger(STDOUT_FILENO, INFO, "Files parsed by request: " + stringify(uploadedFiles.size()));
+	std::string responseBody = "<html><body><h1>File Upload Results</h1><ul>";
+	std::string jsonResponse = "[";
+	bool success = false;
+	bool firstFile = true;
+
 	for (std::map<std::string, std::string>::const_iterator it = uploadedFiles.begin(); it != uploadedFiles.end(); ++it) {
-		logger(STDOUT_FILENO, INFO, " - " + it->first + " : " + stringify(it->second.size()) + " bytes");
+		std::string filename = it->first;
+		std::string fullPath = uploadDir + "/" + filename;
+
+		std::ofstream file(fullPath.c_str(), std::ios::binary);
+		if (file.is_open()) {
+			file.write(it->second.c_str(), it->second.size());
+			file.close();
+			responseBody += "<li>File '" + it->first + "' uploaded successfully as: " + filename + "</li>";
+
+			if (!firstFile) jsonResponse += ",";
+			jsonResponse += "{\"original\":\"" + it->first + "\", \"filename\":\"" + filename + "\", \"path\":\"" + fullPath + "\"}";
+			firstFile = false;
+
+			success = true;
+			logger(STDOUT_FILENO, SUCCESS, "File uploaded: " + fullPath + " size: " + stringify(it->second.size()));
+		} else {
+			responseBody += "<li>Failed to upload file: " + it->first + "</li>";
+			logger(STDOUT_FILENO, ERROR, "Failed to write uploaded file: " + fullPath);
+		}
 	}
 
+	responseBody += "</ul></body></html>";
+	jsonResponse += "]";
 
-	std::string uploadPathConfig = config.getUploadPath();
-	std::string serverRoot = config.getRoot();
-	if (serverRoot.empty()) serverRoot = "www";
+	if (success) {
+		status_code = 201;
+		std::map<std::string, std::string> headers = request.getHeaders();
 
-	if (!serverRoot.empty() && serverRoot[serverRoot.size() - 1] == '/')
-		serverRoot.erase(serverRoot.size() - 1);
-
-	std::string uploadDir;
-	if (!uploadPathConfig.empty() && uploadPathConfig[0] == '/')
-		uploadDir = uploadPathConfig;
-	else {
-		uploadDir = serverRoot;
-		if (!uploadDir.empty()) uploadDir += "/";
-		uploadDir += uploadPathConfig;
-	}
-
-
-	size_t p;
-	while ((p = uploadDir.find("//")) != std::string::npos) uploadDir.erase(p, 1);
-
-	logger(STDOUT_FILENO, INFO, "Upload directory: " + uploadDir);
-
-
-	struct stat st;
-	if (stat(uploadDir.c_str(), &st) != 0) {
-		logger(STDOUT_FILENO, INFO, "Upload directory doesn't exist, creating: " + uploadDir);
-		if (mkdir(uploadDir.c_str(), 0755) != 0 && errno != EEXIST) {
-			status_code = 500;
-			logger(STDOUT_FILENO, ERROR, "Cannot create upload directory: " + uploadDir + " errno: " + stringify(errno));
-			readContent(getPathStatusCode());
-			return;
+		if (headers.find("Accept") != headers.end() && headers["Accept"].find("application/json") != std::string::npos) {
+			send_body = jsonResponse;
+			response_header->setContentType("application/json");
+		} else {
+			send_body = responseBody;
 		}
 	} else {
-		if (!S_ISDIR(st.st_mode)) {
-			status_code = 500;
-			logger(STDOUT_FILENO, ERROR, "Upload path exists but is not a directory: " + uploadDir);
-			readContent(getPathStatusCode());
-			return;
-		}
+		status_code = 500;
+		readContent(getPathStatusCode());
 	}
-	std::string jsonResponse = "[";
-	bool firstFile = true;
-	if (!uploadedFiles.empty()) {
-		logger(STDOUT_FILENO, INFO, "Using files parsed by Request class");
-		bool anyWritten = false;
-		std::string responseBody = "<html><body><h1>File Upload Results</h1><ul>";
-
-		for (std::map<std::string, std::string>::const_iterator it = uploadedFiles.begin(); it != uploadedFiles.end(); ++it) {
-			std::string filename = it->first;
-			const std::string& fileData = it->second;
-
-			std::string fullPath = uploadDir;
-			if (fullPath.empty() || fullPath[fullPath.size() - 1] != '/')
-				fullPath += "/";
-			fullPath += filename;
-
-			logger(STDOUT_FILENO, INFO, "Writing file: " + fullPath + " size: " + stringify(fileData.size()));
-
-			std::ofstream ofs(fullPath.c_str(), std::ios::binary | std::ios::out | std::ios::trunc);
-			if (!ofs.is_open()) {
-				logger(STDOUT_FILENO, ERROR, "Failed to open file for writing: " + fullPath);
-				responseBody += "<li>Failed to write file: " + filename + "</li>";
-			} else {
-				ofs.write(fileData.data(), static_cast<std::streamsize>(fileData.size()));
-				ofs.close();
-
-
-				struct stat fileStat;
-				if (stat(fullPath.c_str(), &fileStat) == 0) {
-					logger(STDOUT_FILENO, SUCCESS, "File written successfully: " + fullPath + " size: " + stringify(fileStat.st_size));
-				} else {
-					logger(STDOUT_FILENO, ERROR, "File write verification failed for: " + fullPath);
-				}
-
-				// Add to JSON response for frontend
-				if (!firstFile) jsonResponse += ",";
-				jsonResponse += "{\"original\":\"" + it->first + "\", \"filename\":\"" + filename + "\"}";
-				firstFile = false;
-				success = true;
-				responseBody += "<li>Uploaded: " + filename + " (" + stringify(fileData.size()) + " bytes)</li>";
-				anyWritten = true;
-			}
-		}
-
-		responseBody += "</ul></body></html>";
-		jsonResponse += "]";
-
-		if (success) {
-			status_code = 201;
-			// Check if request accepts JSON (for API calls)
-			std::map<std::string, std::string> headers = request.getHeaders();
-			logger(STDOUT_FILENO, SUCCESS, "JSON Response: " + jsonResponse);
-			
-			if (headers.find("Accept") != headers.end()) {
-				logger(STDOUT_FILENO, SUCCESS, "Accept header: " + headers["Accept"]);
-			} else {
-				logger(STDOUT_FILENO, SUCCESS, "No Accept header found");
-			}
-			
-			if (headers.find("Accept") != headers.end() && headers["Accept"].find("application/json") != std::string::npos) {
-				send_body = jsonResponse;
-				response_header->setContentType("application/json");
-				logger(STDOUT_FILENO, SUCCESS, "Sending JSON response");
-			} else {
-				send_body = responseBody;
-				logger(STDOUT_FILENO, SUCCESS, "Sending HTML response");
-			}
-		} else {
-			status_code = 500;
-			readContent(getPathStatusCode());
-		}
-	}
-
-	logger(STDOUT_FILENO, WARNING, "No files parsed by Request, falling back to manual parsing");
-
-
 }
-
 
 void Response::deleteContent(const std::string &path) {
 	std::string targetPath = path;
-	
-	// Handle DELETE requests with query parameters (e.g., /delete?filename=...)
+
+
 	std::string uri = request.getUri();
 	size_t queryPos = uri.find('?');
-	
+
 	if (queryPos != std::string::npos) {
 		std::string queryString = uri.substr(queryPos + 1);
 		logger(STDOUT_FILENO, SUCCESS, "Query string: " + queryString);
-		
-		// Parse filename parameter manually from query string
+
+
 		std::string filename = "";
 		size_t filenamePos = queryString.find("filename=");
 		if (filenamePos != std::string::npos) {
-			size_t valueStart = filenamePos + 9; // Length of "filename="
+			size_t valueStart = filenamePos + 9;
 			size_t valueEnd = queryString.find('&', valueStart);
 			if (valueEnd == std::string::npos) {
 				valueEnd = queryString.length();
 			}
 			filename = queryString.substr(valueStart, valueEnd - valueStart);
-			
-			// URL decode the filename
+
 			std::string decodedFilename = "";
 			for (size_t i = 0; i < filename.length(); ++i) {
 				if (filename[i] == '%' && i + 2 < filename.length()) {
-					// Simple hex decode for common characters
+
 					std::string hex = filename.substr(i + 1, 2);
 					if (hex == "20") decodedFilename += ' ';
 					else if (hex == "2E") decodedFilename += '.';
 					else if (hex == "2D") decodedFilename += '-';
 					else if (hex == "5F") decodedFilename += '_';
-					else decodedFilename += filename[i]; // Keep original if not recognized
+					else decodedFilename += filename[i];
 					i += 2;
 				} else if (filename[i] == '+') {
 					decodedFilename += ' ';
@@ -502,56 +433,66 @@ void Response::deleteContent(const std::string &path) {
 			filename = decodedFilename;
 		}
 		if (!filename.empty()) {
-			// For delete requests, check the upload directory first
 			std::string pathStr = request.getPath();
 			std::string shortPath = pathStr.substr(pathStr.find('/'));
 			LocationConfig* loc = findLocation(shortPath + "/");
-			std::string uploadDir = loc->getRoot();
-			if (!uploadDir.empty()) {				
-				// Look for files that start with the original filename
+
+
+			std::string uploadDir;
+			if (loc && !loc->getUploadPath().empty()) {
+				uploadDir = loc->getUploadPath();
+			} else if (loc && !loc->getRoot().empty()) {
+				uploadDir = loc->getRoot();
+			} else {
+				uploadDir = "www/uploads";
+			}
+
+			if (!uploadDir.empty()) {
+
 				DIR* dir = opendir(uploadDir.c_str());
 				if (dir) {
 					struct dirent* entry;
 					std::string foundFile = "";
-					
+
 					while ((entry = readdir(dir)) != NULL) {
 						std::string entryName = entry->d_name;
-						
-						// Check if this file starts with the original filename
+
+
 						if (entryName.find(filename) == 0) {
 							foundFile = uploadDir + "/" + entryName;
 							break;
 						}
 					}
 					closedir(dir);
-					
+
 					if (!foundFile.empty()) {
 						targetPath = foundFile;
 					} else {
 						logger(STDOUT_FILENO, ERROR, "File " + filename + " not found in upload directory: " + uploadDir);
 						status_code = 404;
 						send_body.clear();
-						return;
+						return ;
 					}
 				} else {
 					logger(STDOUT_FILENO, ERROR, "Cannot open upload directory: " + uploadDir);
 					status_code = 404;
 					send_body.clear();
-					return;
+					return ;
 				}
 			} else {
 				logger(STDOUT_FILENO, ERROR, "Upload directory not configured");
 				status_code = 500;
 				send_body.clear();
-				return;
+				return ;
 			}
 		}
 	}
-		
+
+
 	if (pathIsFile(targetPath)) {
 		if (remove(targetPath.c_str()) == 0) {
 			status_code = 204;
-			send_body.clear(); // No content for 204
+			send_body.clear();
 			logger(STDOUT_FILENO, SUCCESS, "File deleted successfully: " + targetPath);
 		} else {
 			status_code = 403;
@@ -574,7 +515,7 @@ void Response::ListDirectory(const std::string& path, const std::string& uri) {
 	}
 
 	std::ostringstream listing;
-	listing << "<html><head><title>Index of " << uri << "</title><link rel=\"stylesheet\" href=\"error_pages/styles.css\"></head><body><h1>Index of " << uri << "</h1><hr><ul>";
+	listing << "<html><head><title>Index of " << uri << "</title></head><body><h1>Index of " << uri << "</h1><hr><ul>";
 	struct dirent* entry;
 	if (uri != "/") {
 
@@ -622,28 +563,26 @@ void Response::ListDirectory(const std::string& path, const std::string& uri) {
 
 LocationConfig* Response::findLocation(const std::string& uri) {
 	LocationConfig* best_match = NULL;
-	size_t best_length = 0;
 
 	for (std::vector<LocationConfig *>::const_iterator it = locations.begin(); it != locations.end(); ++it) {
 		std::string location_path = (*it)->getLocationPath();
 		if (location_path == "/") {
 			if (!best_match) {
 				best_match = *it;
-				best_length = 1;
+
 			}
 			continue;
 		}
 		if (uri == location_path ||
 			(uri.length() > location_path.length() && uri.find(location_path + "/") == 0) ||
 			(uri.length() >= location_path.length() &&
-			 uri.find(location_path) == 0 &&
-			 (uri.length() == location_path.length() ||
-			  uri[location_path.length()] == '/' || uri[location_path.length()] == '\0'))) {
+			uri.find(location_path) == 0 &&
+			(uri.length() == location_path.length() ||
+			uri[location_path.length()] == '/' || uri[location_path.length()] == '\0'))) {
 			best_match = *it;
-			best_length = location_path.length();
 		}
 	}
-	return best_match;
+	return (best_match);
 }
 
 size_t Response::getStatusCode() const {
@@ -659,26 +598,26 @@ void Response::reset() {
 	counter = 0;
 }
 
-// ADDED THIS
+
 bool Response::shouldExecuteAsCGI(const std::string &path) {
-	// Check file extension
+
 	size_t dotPos = path.rfind('.');
 	if (dotPos == std::string::npos)
 		return false;
 	std::string ext = path.substr(dotPos);
 	if (ext != ".php" && ext != ".py" && ext != ".sh")
 		return false;
-	// Check if CGI is enabled for this location
+
 	LocationConfig* loc = findLocation(request.getUri());
 	if (loc && loc->getCgiEnabled()) {
-		// Check if the extension is configured for CGI
+
 		std::vector<std::pair<std::string, std::string> > cgiConfig = loc->getCgi();
 		for (size_t i = 0; i < cgiConfig.size(); ++i) {
 			if (cgiConfig[i].first == ext)
 				return true;
 		}
 	}
-	// Check if path starts with /cgi-bin/
+
 	if (request.getUri().find("/cgi-bin/") == 0)
 		return true;
 	return false;
@@ -687,7 +626,7 @@ bool Response::shouldExecuteAsCGI(const std::string &path) {
 void Response::executeCGI(const std::string &path) {
 	std::map<std::string, std::string> cgiEnv;
 	Cgi cgi(path, cgiEnv);
-	// Set up environment variables
+
 	std::string queryString = "";
 	size_t queryPos = request.getUri().find('?');
 	if (queryPos != std::string::npos)
@@ -695,7 +634,7 @@ void Response::executeCGI(const std::string &path) {
 	std::string contentType = "";
 	std::string contentLengthStr = "0";
 	std::map<std::string, std::string> headers = request.getHeaders();
-	
+
 	if (headers.find("Content-Type") != headers.end())
 		contentType = headers["Content-Type"];
 	if (headers.find("Content-Length") != headers.end())
@@ -710,29 +649,29 @@ void Response::executeCGI(const std::string &path) {
 		contentType,
 		contentLength,
 		config.getHost(),
-		stringify(config.getPorts()[0]), // Use first port
+		stringify(config.getPorts()[0]),
 		headers
 	);
-	// Set POST data if available
+
 	if (request.getMethod() == "POST" && !request.getBody().empty())
 		cgi.setPostData(request.getBody());
-	// Check if interpreter is available
+
 	if (cgi.checkExtension() != 0) {
 		status_code = 500;
 		send_body = "CGI interpreter not available";
-		return;
+		return ;
 	}
-	// Execute CGI
+
 	if (!cgi.execute()) {
 		status_code = 500;
 		send_body = "CGI execution failed";
-		return;
+		return ;
 	}
-	// Parse CGI output
+
 	std::string cgiHeaders = cgi.parseHeaders(send_body);
-	// Handle CGI headers
+
 	if (!cgiHeaders.empty()) {
-		// Parse status header if present
+
 		if (cgiHeaders.find("Status: ") != std::string::npos) {
 			size_t statusPos = cgiHeaders.find("Status: ") + 8;
 			size_t statusEnd = cgiHeaders.find("\r\n", statusPos);
@@ -743,7 +682,7 @@ void Response::executeCGI(const std::string &path) {
 				status_code = static_cast<size_t>(std::atoi(statusStr.c_str()));
 			}
 		}
-		// Parse Content-Type header if present
+
 		if (cgiHeaders.find("Content-Type: ") != std::string::npos) {
 			size_t ctPos = cgiHeaders.find("Content-Type: ") + 14;
 			size_t ctEnd = cgiHeaders.find("\r\n", ctPos);
@@ -755,19 +694,16 @@ void Response::executeCGI(const std::string &path) {
 			}
 		}
 	}
-	// If no Content-Type was set by CGI, use default
+
 	if (send_body.empty() && cgiHeaders.empty()) {
 		status_code = 500;
 		send_body = "CGI script produced no output";
 	}
 }
-<<<<<<< HEAD
 
 std::string Response::resolveFilePath(const std::string &uri) {
-	// Find the matching location
+
 	LocationConfig* loc = findLocation(uri);
-	
-	// Determine the root directory
 	std::string root;
 	if (loc && !loc->getRoot().empty()) {
 		root = loc->getRoot();
@@ -777,22 +713,17 @@ std::string Response::resolveFilePath(const std::string &uri) {
 			root = "www";
 		}
 	}
-	
-	// Normalize the root path
+
 	root = normalizePath(root);
-	if (!root.empty() && root[root.length()-1] == '/') {
+	if (!root.empty() && root[root.length()-1] == '/')
 		root = root.substr(0, root.length()-1);
-	}
-	
-	// Extract clean URI (without query parameters)
+
 	std::string cleanUri = uri;
 	size_t queryPos = uri.find('?');
-	if (queryPos != std::string::npos) {
+	if (queryPos != std::string::npos)
 		cleanUri = uri.substr(0, queryPos);
-	}
 	cleanUri = normalizePath(cleanUri);
-	
-	// Build the file path
+
 	std::string filePath;
 	if (cleanUri == "/") {
 		filePath = root;
@@ -804,87 +735,7 @@ std::string Response::resolveFilePath(const std::string &uri) {
 	} else {
 		filePath = root + cleanUri;
 	}
-	
+
 	filePath = normalizePath(filePath);
 	return filePath;
 }
-// UNTIL HERE
-=======
-// UNTIL HERE
-
- /*
- 
- DELETEME SI NO HAY PROBLEMS
-
-void Response::handleFileUpload(const std::string &content) {
-	(void) content;
-	std::string uploadDir = config.getUploadPath();
-	if (!pathIsDirectory(uploadDir)) {
-		errno = 0;
-		if (mkdir(uploadDir.c_str(), 0755) != 0 && errno != EEXIST) {
-			status_code = 500;
-			readContent(getPathStatusCode());
-			logger(STDOUT_FILENO, ERROR, "Cannot create upload directory: " + uploadDir);
-			return ;
-		}
-	}
-
-	const std::map<std::string, std::string>& uploadedFiles = request.getUploadedFiles();
-	std::string responseBody = "<html><body><h1>File Upload Results</h1><ul>";
-	std::string jsonResponse = "[";
-	bool success = false;
-	bool firstFile = true;
-	
-	for (std::map<std::string, std::string>::const_iterator it = uploadedFiles.begin(); it != uploadedFiles.end(); ++it) {
-		std::string filename = it->first;
-		std::string fullPath = uploadDir + "/" + filename;
-
-		std::ofstream file(fullPath.c_str(), std::ios::binary);
-		if (file.is_open()) {
-			file.write(it->second.c_str(), it->second.size());
-			file.close();
-			responseBody += "<li>File '" + it->first + "' uploaded successfully as: " + filename + "</li>";
-			
-			// Add to JSON response for frontend
-			if (!firstFile) jsonResponse += ",";
-			jsonResponse += "{\"original\":\"" + it->first + "\", \"filename\":\"" + filename + "\"}";
-			firstFile = false;
-			
-			success = true;
-			logger(STDOUT_FILENO, SUCCESS, "File uploaded: " + fullPath + " size: " + stringify(it->second.size()));
-		} else {
-			responseBody += "<li>Failed to upload file: " + it->first + "</li>";
-			logger(STDOUT_FILENO, ERROR, "Failed to write uploaded file: " + fullPath);
-		}
-	}
-
-	responseBody += "</ul></body></html>";
-	jsonResponse += "]";
-
-	if (success) {
-		status_code = 201;
-		// Check if request accepts JSON (for API calls)
-		std::map<std::string, std::string> headers = request.getHeaders();
-		logger(STDOUT_FILENO, SUCCESS, "JSON Response: " + jsonResponse);
-		
-		if (headers.find("Accept") != headers.end()) {
-			logger(STDOUT_FILENO, SUCCESS, "Accept header: " + headers["Accept"]);
-		} else {
-			logger(STDOUT_FILENO, SUCCESS, "No Accept header found");
-		}
-		
-		if (headers.find("Accept") != headers.end() && headers["Accept"].find("application/json") != std::string::npos) {
-			send_body = jsonResponse;
-			response_header->setContentType("application/json");
-			logger(STDOUT_FILENO, SUCCESS, "Sending JSON response");
-		} else {
-			send_body = responseBody;
-			logger(STDOUT_FILENO, SUCCESS, "Sending HTML response");
-		}
-	} else {
-		status_code = 500;
-		readContent(getPathStatusCode());
-	}
-}
- */
->>>>>>> csubires

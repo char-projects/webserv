@@ -11,7 +11,17 @@
 # include "Request.hpp"
 # include "Cgi.hpp"
 
-# define MESSAGE_LOOP "<html><body><h1>500 Internal Server Error</h1></body></html>"
+#define ERROR_400_HTML "<html><body style=\"font-family:Arial,sans-serif;text-align:center;padding:50px\"><h1 style=\"color:#d32f2f\">400 Bad Request</h1><p>Your browser sent a request that this server could not understand.</p><hr><p>Webserv/42.0</p></body></html>"
+#define ERROR_403_HTML "<html><body style=\"font-family:Arial,sans-serif;text-align:center;padding:50px\"><h1 style=\"color:#d32f2f\">403 Forbidden</h1><p>You don't have permission to access this resource.</p><hr><p>Webserv/42.0</p></body></html>"
+#define ERROR_404_HTML "<html><body style=\"font-family:Arial,sans-serif;text-align:center;padding:50px\"><h1 style=\"color:#d32f2f\">404 Not Found</h1><p>The requested URL was not found on this server.</p><hr><p>Webserv/42.0</p></body></html>"
+#define ERROR_405_HTML "<html><body style=\"font-family:Arial,sans-serif;text-align:center;padding:50px\"><h1 style=\"color:#d32f2f\">405 Method Not Allowed</h1><p>The requested method is not allowed for this URL.</p><hr><p>Webserv/42.0</p></body></html>"
+#define ERROR_413_HTML "<html><body style=\"font-family:Arial,sans-serif;text-align:center;padding:50px\"><h1 style=\"color:#d32f2f\">413 Payload Too Large</h1><p>The request body exceeds the maximum allowed size.</p><hr><p>Webserv/42.0</p></body></html>"
+#define ERROR_500_HTML "<html><body style=\"font-family:Arial,sans-serif;text-align:center;padding:50px\"><h1 style=\"color:#d32f2f\">500 Internal Server Error</h1><p>The server encountered an internal error and could not complete your request.</p><hr><p>Webserv/42.0</p></body></html>"
+#define ERROR_502_HTML "<html><body style=\"font-family:Arial,sans-serif;text-align:center;padding:50px\"><h1 style=\"color:#d32f2f\">502 Bad Gateway</h1><p>The server received an invalid response from the upstream server.</p><hr><p>Webserv/42.0</p></body></html>"
+#define ERROR_503_HTML "<html><body style=\"font-family:Arial,sans-serif;text-align:center;padding:50px\"><h1 style=\"color:#d32f2f\">503 Service Unavailable</h1><p>The server is temporarily unable to service your request.</p><hr><p>Webserv/42.0</p></body></html>"
+#define ERROR_504_HTML "<html><body style=\"font-family:Arial,sans-serif;text-align:center;padding:50px\"><h1 style=\"color:#d32f2f\">504 Gateway Timeout</h1><p>The server did not receive a timely response from the upstream server.</p><hr><p>Webserv/42.0</p></body></html>"
+#define ERROR_520_HTML "<html><body style=\"font-family:Arial,sans-serif;text-align:center;padding:50px\"><h1 style=\"color:#d32f2f\">520 Unknown Error</h1><p>The server returned an unknown error.</p><hr><p>Webserv/42.0</p></body></html>"
+#define MESSAGE_LOOP "<html><body style=\"font-family:Arial,sans-serif;text-align:center;padding:50px\"><h1 style=\"color:#d32f2f\">500 Internal Server Error</h1><p>Too many redirects or internal loop detected.</p><hr><p>Webserv/42.0</p></body></html>"
 
 class ServerConfig;
 class Request;

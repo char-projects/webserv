@@ -214,6 +214,15 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                                     std::cerr << "Error: Expected 'on' or 'off' after 'autoindex'" << std::endl;
                                     i++;
                                 }
+							} else if (tokens[i] == "upload_path") {
+									if (i + 1 < tokens.size()) {
+										location->setUploadPath(tokens[i + 1]);
+										i += 2;
+									} else {
+										std::cerr << "Error: Expected path after 'upload_path'" << std::endl;
+										i++;
+									}
+
                             } else if (tokens[i] == "return") {
                                 if (i + 2 < tokens.size() && isdigit(tokens[i + 1][0])
                                     && tokens[i + 1].size() == 3 && tokens[i + 1][0] == '3') {
@@ -362,7 +371,7 @@ void ConfigParsing::printConfig() const {
         std::cout << std::endl;
         std::cout << "  Error Pages:" << std::endl;
         for (size_t j = 0; j < servers[i]->getErrorPages().size(); j++) {
-            std::cout << "    " << servers[i]->getErrorPages()[j].second 
+            std::cout << "    " << servers[i]->getErrorPages()[j].second
                 << "->" << servers[i]->getErrorPages()[j].first << std::endl;
         }
         if (servers[i]->getMaxBodySize() > 0)
@@ -465,6 +474,8 @@ void ConfigParsing::printConfig() const {
                 }
                 std::cout << std::endl;
             }
+			if (!it->second[i]->getUploadPath().empty())
+    			std::cout << "  Upload Path: " << it->second[i]->getUploadPath() << std::endl;
             if (!it->second[i]->getRoot().empty())
                 std::cout << "  Root: " << it->second[i]->getRoot() << std::endl;
             locCount++;

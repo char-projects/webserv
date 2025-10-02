@@ -176,3 +176,11 @@ std::string LocationConfig::getRoot() const {
 void LocationConfig::setRoot(const std::string &root) {
     this->root = root;
 }
+
+std::string LocationConfig::getUploadPath() const {
+    return upload_path;
+}
+
+void LocationConfig::setUploadPath(const std::string &uploadPath) {
+	this->upload_path = uploadPath;
+}

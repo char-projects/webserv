@@ -26,6 +26,8 @@
 # define SERVER_NAME		"Webserv/42.0"
 # define BUFFER_RECV_SIZE	8192
 # define MAX_BODY_SIZE		1024
+# define UPLOADS			"www/upload"
+
 
 class Request;
 class Response;
