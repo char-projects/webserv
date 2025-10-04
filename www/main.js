@@ -477,7 +477,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         'Accept': 'application/json'
                     }
                 }).then(response => response.json()).then(uploadedFiles => {
-                    alert('Upload successful!');
+                    // alert('Upload successful!');
                     // Display uploaded files and a delete button for each file
                     const fileList = document.getElementById('file-list');
                     if (fileList) {
@@ -497,7 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 }).then(response => {
                                     if (response.ok) {
                                         li.remove();
-                                        alert('File deleted successfully!');
+                                        //alert('File deleted successfully!');
                                     } else {
                                         alert('Delete failed.');
                                     }

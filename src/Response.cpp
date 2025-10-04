@@ -18,7 +18,6 @@ Response::Response(const int client_fd, const Request& request, const ServerConf
 Response::~Response() {
 	delete response_header;
 }
-
 const char* Response::getResponse() {
 	e_message log_type = SUCCESS;
 	counter = 0;
@@ -62,20 +61,25 @@ const char* Response::getResponse() {
 	} else {
 		readContent(getPathStatusCode());
 	}
- std::string cookie_headers = buildCookieHeaders();
+
+	// Construir headers de respuesta
 	response_header->setContentLength(send_body.size());
 	response_header->setContentType(request.getPath());
 	send_header = response_header->getHeader(status_code);
+
+	// CRÍTICO: Insertar cookies ANTES del \r\n\r\n final
+	std::string cookie_headers = buildCookieHeaders();
+	if (!cookie_headers.empty()) {
+		size_t headerEndPos = send_header.find("\r\n\r\n");
+		if (headerEndPos != std::string::npos) {
+			// Insertar cookies antes del doble CRLF
+			send_header.insert(headerEndPos, cookie_headers);
+			logger(STDOUT_FILENO, DEBUG, "Cookies added to response: " + cookie_headers);
+		}
+	}
+
+	// Construir respuesta completa
 	send_response.clear();
-
-if (!cookie_headers.empty()) {
-        size_t pos = send_header.find("\r\n\r\n");
-        if (pos != std::string::npos) {
-            send_header.insert(pos, "\r\n" + cookie_headers);
-        }
-    }
-
-
 	send_response.append(send_header);
 	if (request.getMethod() != "HEAD")
 		send_response.append(send_body);
@@ -88,9 +92,8 @@ if (!cookie_headers.empty()) {
 		request.getHttpVersion() + " " + stringify(status_code) + " Size: " +
 		stringify(send_body.size()) + "bytes");
 
-	return (send_response.data());
+	return send_response.data();
 }
-
 size_t Response::getSize() {
 	return (send_response.size());
 }
@@ -652,7 +655,6 @@ bool Response::shouldExecuteAsCGI(const std::string &path) {
 }
 
 void Response::executeCGI(const std::string &path) {
-
 	std::string absolutePath = path;
 	if (path[0] != '/') {
 		char* cwd = getcwd(NULL, 0);
@@ -675,6 +677,7 @@ void Response::executeCGI(const std::string &path) {
 	size_t queryPos = request.getUri().find('?');
 	if (queryPos != std::string::npos)
 		queryString = request.getUri().substr(queryPos + 1);
+
 	std::string contentType = "";
 	std::string contentLengthStr = "0";
 	std::map<std::string, std::string> headers = request.getHeaders();
@@ -683,9 +686,17 @@ void Response::executeCGI(const std::string &path) {
 		contentType = headers["Content-Type"];
 	if (headers.find("Content-Length") != headers.end())
 		contentLengthStr = headers["Content-Length"];
+
 	size_t contentLength = 0;
 	if (!contentLengthStr.empty())
 		contentLength = static_cast<size_t>(std::atoi(contentLengthStr.c_str()));
+
+	// Pasar el session_id al CGI
+	std::string session_id = request.getSessionId();
+	if (!session_id.empty()) {
+		cgiEnv["HTTP_COOKIE"] = "SESSIONID=" + session_id;
+	}
+
 	cgi.setupEnvironment(
 		request.getMethod(),
 		request.getUri(),
@@ -703,7 +714,7 @@ void Response::executeCGI(const std::string &path) {
 	if (cgi.checkExtension() != 0) {
 		status_code = 500;
 		send_body = "CGI interpreter not available";
-		return ;
+		return;
 	}
 
 	if (!cgi.execute()) {
@@ -717,35 +728,62 @@ void Response::executeCGI(const std::string &path) {
 		return;
 	}
 
-	std::string cgiHeaders = cgi.parseHeaders(send_body);
-    std::string session_id = request.getSessionId();
-    if (!session_id.empty()) {
-        cgiEnv["HTTP_SESSION_ID"] = session_id;
-    }
-	if (!cgiHeaders.empty()) {
+	// Parsear headers del CGI (incluyendo cookies)
+	std::string cgiOutput = cgi.getOutput();
+	std::string cgiHeaders = "";
 
-		if (cgiHeaders.find("Status: ") != std::string::npos) {
-			size_t statusPos = cgiHeaders.find("Status: ") + 8;
-			size_t statusEnd = cgiHeaders.find("\r\n", statusPos);
-			if (statusEnd == std::string::npos)
-				statusEnd = cgiHeaders.find("\n", statusPos);
-			if (statusEnd != std::string::npos) {
-				std::string statusStr = cgiHeaders.substr(statusPos, statusEnd - statusPos);
+	// Intentar con \r\n\r\n primero
+	size_t headerEnd = cgiOutput.find("\r\n\r\n");
+	if (headerEnd == std::string::npos) {
+		// Si no hay \r\n\r\n, intentar con \n\n (Python usa esto)
+		headerEnd = cgiOutput.find("\n\n");
+		if (headerEnd != std::string::npos) {
+			cgiHeaders = cgiOutput.substr(0, headerEnd);
+			send_body = cgiOutput.substr(headerEnd + 2);
+		}
+	} else {
+		cgiHeaders = cgiOutput.substr(0, headerEnd);
+		send_body = cgiOutput.substr(headerEnd + 4);
+	}
+
+	logger(STDOUT_FILENO, DEBUG, "CGI Headers length: " + stringify(cgiHeaders.length()));
+	logger(STDOUT_FILENO, DEBUG, "CGI Body length: " + stringify(send_body.length()));
+
+		// Procesar headers del CGI línea por línea
+		std::istringstream headerStream(cgiHeaders);
+		std::string line;
+
+		while (std::getline(headerStream, line)) {
+			if (!line.empty() && line[line.length()-1] == '\r')
+				line = line.substr(0, line.length()-1);
+
+			// Buscar Set-Cookie headers
+			if (line.find("Set-Cookie:") == 0) {
+				std::string cookieValue = line.substr(11); // Skip "Set-Cookie:"
+				cookieValue = trim(cookieValue);
+
+				// Extraer nombre de la cookie
+				size_t eqPos = cookieValue.find('=');
+				if (eqPos != std::string::npos) {
+					std::string cookieName = cookieValue.substr(0, eqPos);
+					cookies[cookieName] = cookieValue;
+					logger(STDOUT_FILENO, DEBUG, "CGI Cookie captured: " + cookieName + " = " + cookieValue);
+				}
+			}
+			// Buscar Status header
+			else if (line.find("Status:") == 0) {
+				std::string statusStr = line.substr(7);
+				statusStr = trim(statusStr);
 				status_code = static_cast<size_t>(std::atoi(statusStr.c_str()));
 			}
-		}
-
-		if (cgiHeaders.find("Content-Type: ") != std::string::npos) {
-			size_t ctPos = cgiHeaders.find("Content-Type: ") + 14;
-			size_t ctEnd = cgiHeaders.find("\r\n", ctPos);
-			if (ctEnd == std::string::npos)
-				ctEnd = cgiHeaders.find("\n", ctPos);
-			if (ctEnd != std::string::npos) {
-				std::string contentType = cgiHeaders.substr(ctPos, ctEnd - ctPos);
+			// Buscar Content-Type header
+			else if (line.find("Content-Type:") == 0) {
+				std::string contentType = line.substr(13);
+				contentType = trim(contentType);
 				response_header->setContentType(contentType);
 			}
 		}
-	}
+
 
 	if (send_body.empty() && cgiHeaders.empty()) {
 		status_code = 500;
@@ -795,21 +833,6 @@ std::string Response::resolveFilePath(const std::string &uri) {
     return filePath;
 }
 
-void Response::setCookie(const std::string& name, const std::string& value,
-                        time_t max_age, const std::string& path) {
-    std::string domain = config.getHost(); // Usar el host del servidor
-    if (domain.empty()) {
-        domain = "localhost"; // Fallback
-    }
-
-    std::stringstream cookie;
-    cookie << name << "=" << value;
-    cookie << "; Path=" << path;
-    cookie << "; Domain=" << domain;
-    cookie << "; Max-Age=" << max_age;
-    cookie << "; HttpOnly";
-    cookies[name] = cookie.str();
-}
 
 void Response::removeCookie(const std::string& name) {
     // Para eliminar una cookie, establecemos max_age = 0
@@ -819,12 +842,34 @@ void Response::removeCookie(const std::string& name) {
 void Response::setSessionCookie(const std::string& session_id) {
     setCookie("SESSIONID", session_id, 1800, "/"); // 30 minutos
 }
-
 std::string Response::buildCookieHeaders() {
-    std::string cookie_headers;
-    for (std::map<std::string, std::string>::const_iterator it = cookies.begin();
-         it != cookies.end(); ++it) {
-        cookie_headers += "Set-Cookie: " + it->second + "\r\n";
-    }
-    return cookie_headers;
+	std::string cookie_headers;
+	for (std::map<std::string, std::string>::const_iterator it = cookies.begin();
+		 it != cookies.end(); ++it) {
+		// Cada cookie debe tener su propio header Set-Cookie
+		cookie_headers += "Set-Cookie: " + it->second + "\r\n";
+		logger(STDOUT_FILENO, DEBUG, "Building cookie header: " + it->first);
+	}
+	return cookie_headers;
+}
+
+// Método setCookie() corregido con formato completo
+void Response::setCookie(const std::string& name, const std::string& value,
+						time_t max_age, const std::string& path) {
+	std::stringstream cookie;
+	cookie << name << "=" << value;
+
+	if (!path.empty())
+		cookie << "; Path=" << path;
+
+	if (max_age > 0)
+		cookie << "; Max-Age=" << max_age;
+
+	cookie << "; HttpOnly";
+
+	// NO incluir Domain a menos que sea necesario
+	// Muchos navegadores tienen problemas con Domain=localhost
+
+	cookies[name] = cookie.str();
+	logger(STDOUT_FILENO, DEBUG, "Cookie set: " + name + " = " + value);
 }
