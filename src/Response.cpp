@@ -22,7 +22,20 @@ const char* Response::getResponse() {
 	e_message log_type = SUCCESS;
 	counter = 0;
 
-	status_code = request.getStatusCode();
+status_code = request.getStatusCode();
+
+
+if (status_code == 413) {
+    logger(STDOUT_FILENO, ERROR, "Payload too large detected, sending 413 response");
+    readContent(getPathStatusCode());
+
+    response_header->setContentLength(send_body.size());
+    send_header = response_header->getHeader(status_code);
+    send_response = send_header;
+    if (request.getMethod() != "HEAD")
+        send_response.append(send_body);
+    return send_response.data();
+}
 	logger(STDOUT_FILENO, SUCCESS, "Host: " + config.getHost() +
 		" Request:  " + request.getMethod() + " " + request.getPath() + " " +
 		request.getHttpVersion() + " " + stringify(status_code));
@@ -62,23 +75,23 @@ const char* Response::getResponse() {
 		readContent(getPathStatusCode());
 	}
 
-	// Construir headers de respuesta
+
 	response_header->setContentLength(send_body.size());
 	response_header->setContentType(request.getPath());
 	send_header = response_header->getHeader(status_code);
 
-	// CRÍTICO: Insertar cookies ANTES del \r\n\r\n final
+
 	std::string cookie_headers = buildCookieHeaders();
 	if (!cookie_headers.empty()) {
 		size_t headerEndPos = send_header.find("\r\n\r\n");
 		if (headerEndPos != std::string::npos) {
-			// Insertar cookies antes del doble CRLF
+
 			send_header.insert(headerEndPos, cookie_headers);
 			logger(STDOUT_FILENO, DEBUG, "Cookies added to response: " + cookie_headers);
 		}
 	}
 
-	// Construir respuesta completa
+
 	send_response.clear();
 	send_response.append(send_header);
 	if (request.getMethod() != "HEAD")
@@ -324,7 +337,7 @@ void Response::writeContent(const std::string &path, std::string content)
 	}
 
 	if (request.isMultipart() && !request.getUploadedFiles().empty()) {
-		handleFileUpload(content);
+		handleFileUpload();
 		return ;
 	}
 
@@ -351,11 +364,38 @@ void Response::writeContent(const std::string &path, std::string content)
 	}
 }
 
-void Response::handleFileUpload(const std::string &content) {
-	(void) content;
+void Response::handleFileUpload() {
+
+
+
+    const std::map<std::string, std::string>& uploadedFiles = request.getUploadedFiles();
+    size_t total_upload_size = 0;
+
+    for (std::map<std::string, std::string>::const_iterator it = uploadedFiles.begin();
+         it != uploadedFiles.end(); ++it) {
+        total_upload_size += it->second.size();
+    }
+
+
+    LocationConfig* loc = findLocation(request.getUri());
+    size_t max_upload_size = 0;
+
+    if (loc && loc->getMaxBodySize() > 0) {
+        max_upload_size = loc->getMaxBodySize();
+    } else {
+        max_upload_size = config.getMaxBodySize();
+    }
+
+    if (max_upload_size > 0 && total_upload_size > max_upload_size) {
+        status_code = 413;
+        readContent(getPathStatusCode());
+        logger(STDOUT_FILENO, ERROR, "Upload size exceeds limit: " +
+               stringify(total_upload_size) + " > " + stringify(max_upload_size));
+        return;
+    }
 	std::string pathStr = request.getPath();
 	std::string shortPath = pathStr.substr(pathStr.find_last_of('/'));
-	LocationConfig* loc = findLocation(shortPath + "/");
+	loc = findLocation(shortPath + "/");
 	std::string uploadDir;
 
 	if (loc && !loc->getUploadPath().empty()) {
@@ -376,7 +416,6 @@ void Response::handleFileUpload(const std::string &content) {
 		}
 	}
 
-	const std::map<std::string, std::string>& uploadedFiles = request.getUploadedFiles();
 	std::string responseBody = "<html><body><h1>File Upload Results</h1><ul>";
 	std::string jsonResponse = "[";
 	bool success = false;
@@ -691,7 +730,7 @@ void Response::executeCGI(const std::string &path) {
 	if (!contentLengthStr.empty())
 		contentLength = static_cast<size_t>(std::atoi(contentLengthStr.c_str()));
 
-	// Pasar el session_id al CGI
+
 	std::string session_id = request.getSessionId();
 	if (!session_id.empty()) {
 		cgiEnv["HTTP_COOKIE"] = "SESSIONID=" + session_id;
@@ -728,14 +767,14 @@ void Response::executeCGI(const std::string &path) {
 		return;
 	}
 
-	// Parsear headers del CGI (incluyendo cookies)
+
 	std::string cgiOutput = cgi.getOutput();
 	std::string cgiHeaders = "";
 
-	// Intentar con \r\n\r\n primero
+
 	size_t headerEnd = cgiOutput.find("\r\n\r\n");
 	if (headerEnd == std::string::npos) {
-		// Si no hay \r\n\r\n, intentar con \n\n (Python usa esto)
+
 		headerEnd = cgiOutput.find("\n\n");
 		if (headerEnd != std::string::npos) {
 			cgiHeaders = cgiOutput.substr(0, headerEnd);
@@ -749,7 +788,7 @@ void Response::executeCGI(const std::string &path) {
 	logger(STDOUT_FILENO, DEBUG, "CGI Headers length: " + stringify(cgiHeaders.length()));
 	logger(STDOUT_FILENO, DEBUG, "CGI Body length: " + stringify(send_body.length()));
 
-		// Procesar headers del CGI línea por línea
+
 		std::istringstream headerStream(cgiHeaders);
 		std::string line;
 
@@ -757,12 +796,12 @@ void Response::executeCGI(const std::string &path) {
 			if (!line.empty() && line[line.length()-1] == '\r')
 				line = line.substr(0, line.length()-1);
 
-			// Buscar Set-Cookie headers
+
 			if (line.find("Set-Cookie:") == 0) {
-				std::string cookieValue = line.substr(11); // Skip "Set-Cookie:"
+				std::string cookieValue = line.substr(11);
 				cookieValue = trim(cookieValue);
 
-				// Extraer nombre de la cookie
+
 				size_t eqPos = cookieValue.find('=');
 				if (eqPos != std::string::npos) {
 					std::string cookieName = cookieValue.substr(0, eqPos);
@@ -770,13 +809,13 @@ void Response::executeCGI(const std::string &path) {
 					logger(STDOUT_FILENO, DEBUG, "CGI Cookie captured: " + cookieName + " = " + cookieValue);
 				}
 			}
-			// Buscar Status header
+
 			else if (line.find("Status:") == 0) {
 				std::string statusStr = line.substr(7);
 				statusStr = trim(statusStr);
 				status_code = static_cast<size_t>(std::atoi(statusStr.c_str()));
 			}
-			// Buscar Content-Type header
+
 			else if (line.find("Content-Type:") == 0) {
 				std::string contentType = line.substr(13);
 				contentType = trim(contentType);
@@ -835,25 +874,25 @@ std::string Response::resolveFilePath(const std::string &uri) {
 
 
 void Response::removeCookie(const std::string& name) {
-    // Para eliminar una cookie, establecemos max_age = 0
+
     setCookie(name, "", 0, "/");
 }
 
 void Response::setSessionCookie(const std::string& session_id) {
-    setCookie("SESSIONID", session_id, 1800, "/"); // 30 minutos
+    setCookie("SESSIONID", session_id, 1800, "/");
 }
 std::string Response::buildCookieHeaders() {
 	std::string cookie_headers;
 	for (std::map<std::string, std::string>::const_iterator it = cookies.begin();
 		 it != cookies.end(); ++it) {
-		// Cada cookie debe tener su propio header Set-Cookie
+
 		cookie_headers += "Set-Cookie: " + it->second + "\r\n";
 		logger(STDOUT_FILENO, DEBUG, "Building cookie header: " + it->first);
 	}
 	return cookie_headers;
 }
 
-// Método setCookie() corregido con formato completo
+
 void Response::setCookie(const std::string& name, const std::string& value,
 						time_t max_age, const std::string& path) {
 	std::stringstream cookie;
@@ -867,8 +906,8 @@ void Response::setCookie(const std::string& name, const std::string& value,
 
 	cookie << "; HttpOnly";
 
-	// NO incluir Domain a menos que sea necesario
-	// Muchos navegadores tienen problemas con Domain=localhost
+
+
 
 	cookies[name] = cookie.str();
 	logger(STDOUT_FILENO, DEBUG, "Cookie set: " + name + " = " + value);

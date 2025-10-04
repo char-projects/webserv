@@ -10,9 +10,9 @@ Webserv::Webserv(ConfigParsing &config) : config(config) {
 	this->clients_state = std::map<int, ClientState>();
 
     this->session_cookie_name = "SESSIONID";
-    this->session_timeout = 1800; // 30 minutos en segundos
+    this->session_timeout = 1800;
 
-    // Limpieza inicial de sesiones expiradas
+
     cleanupExpiredSessions();
 
 }
@@ -124,20 +124,29 @@ void Webserv::handleConnections(fd_set &read_fds) {
 
 			const std::map<ServerConfig *, std::vector<LocationConfig*> >& map_loc = config.getLocations();
 			std::map<ServerConfig *, std::vector<LocationConfig*> >::const_iterator loc = map_loc.find((*it).second);
-			if (loc != map_loc.end())
-			{
-				fds_clients.push_back(client_fd);
-				clients_state[client_fd] = ClientState();
-				clients_state[client_fd].request = new Request(client_fd, *it->second);
-				clients_state[client_fd].response = new Response(client_fd, *clients_state[client_fd].request, *it->second, loc->second);
-				clients_state[client_fd].last_activity = time(NULL);
-				clients_state[client_fd].ready_to_read = true;
-				clients_state[client_fd].ready_to_write = false;
-				clients_state[client_fd].receiving_body = false;
-				clients_state[client_fd].expected_body_size = 0;
-				clients_state[client_fd].total_bytes_received = 0;
-				clients_state[client_fd].request->reset();
-				logger(STDOUT_FILENO, INFO, "New client connected: " + stringify(client_fd));
+	if (loc != map_loc.end()) {
+        fds_clients.push_back(client_fd);
+        clients_state[client_fd] = ClientState();
+        clients_state[client_fd].request = new Request(client_fd, *it->second);
+        clients_state[client_fd].response = new Response(client_fd, *clients_state[client_fd].request, *it->second, loc->second);
+        clients_state[client_fd].last_activity = time(NULL);
+        clients_state[client_fd].ready_to_read = true;
+        clients_state[client_fd].ready_to_write = false;
+        clients_state[client_fd].receiving_body = false;
+        clients_state[client_fd].expected_body_size = 0;
+        clients_state[client_fd].total_bytes_received = 0;
+        clients_state[client_fd].headers_parsed = false;
+
+
+        clients_state[client_fd].max_body_size = it->second->getMaxBodySize();
+        if (clients_state[client_fd].max_body_size == 0) {
+
+            clients_state[client_fd].max_body_size = MAX_BODY_SIZE;
+        }
+
+        clients_state[client_fd].request->reset();
+        logger(STDOUT_FILENO, INFO, "New client connected: " + stringify(client_fd));
+
 			} else {
 				close(client_fd);
 				logger(STDOUT_FILENO, ERROR, "New client not connected: " + stringify(client_fd));
@@ -147,9 +156,58 @@ void Webserv::handleConnections(fd_set &read_fds) {
 }
 
 void Webserv::clientRequest(int client_fd, bool &close_connection) {
-	std::vector<char> buffer(BUFFER_RECV_SIZE);
+    ClientState& client_state = clients_state[client_fd];
 
-	ssize_t bytes_read = recv(client_fd, buffer.data(), buffer.size() - 1, 0);
+
+    if (client_state.headers_parsed && client_state.max_body_size > 0) {
+        if (client_state.total_bytes_received >= client_state.max_body_size) {
+            logger(STDOUT_FILENO, ERROR, "Request already exceeded max body size: " +
+                   stringify(client_state.total_bytes_received) + " >= " +
+                   stringify(client_state.max_body_size));
+
+
+            client_state.request->setStatusCode(413);
+            client_state.ready_to_read = false;
+            client_state.ready_to_write = true;
+            return;
+        }
+
+
+        size_t remaining_quota = client_state.max_body_size - client_state.total_bytes_received;
+        if (remaining_quota < BUFFER_RECV_SIZE) {
+
+            std::vector<char> buffer(remaining_quota);
+            ssize_t bytes_read = recv(client_fd, buffer.data(), remaining_quota, 0);
+
+            if (bytes_read > 0) {
+                client_state.total_bytes_received += bytes_read;
+
+                if (client_state.total_bytes_received >= client_state.max_body_size) {
+                    logger(STDOUT_FILENO, ERROR, "Request exceeded max body size during reception: " +
+                           stringify(client_state.total_bytes_received) + " >= " +
+                           stringify(client_state.max_body_size));
+                    client_state.request->setStatusCode(413);
+                }
+
+
+                bool should_continue = client_state.request->processReceivedData(
+                    buffer.data(), bytes_read,
+                    client_state.receiving_body,
+                    client_state.expected_body_size
+                );
+
+                if (!should_continue || client_state.request->getStatusCode() == 413) {
+                    client_state.ready_to_read = false;
+                    client_state.ready_to_write = true;
+                }
+            }
+            return;
+        }
+    }
+
+
+    std::vector<char> buffer(BUFFER_RECV_SIZE);
+    ssize_t bytes_read = recv(client_fd, buffer.data(), buffer.size() - 1, 0);
 
 	if (bytes_read <= 0) {
 		if (bytes_read == 0) {
@@ -161,28 +219,32 @@ void Webserv::clientRequest(int client_fd, bool &close_connection) {
 		}
 		close_connection = true;
 	} else {
-		buffer[bytes_read] = '\0';
-		clients_state[client_fd].total_bytes_received += bytes_read;
-
-		logger(STDOUT_FILENO, INFO, "Received " + stringify(bytes_read) + " bytes from client " + stringify(client_fd) +
-			   " (total: " + stringify(clients_state[client_fd].total_bytes_received) + " bytes)");
+    client_state.total_bytes_received += bytes_read;
 
 
-		bool should_continue_receiving = clients_state[client_fd].request->processReceivedData(buffer.data(), bytes_read, clients_state[client_fd].receiving_body, clients_state[client_fd].expected_body_size);
+        if (client_state.max_body_size > 0 &&
+            client_state.total_bytes_received > client_state.max_body_size) {
+            logger(STDOUT_FILENO, ERROR, "Request exceeded max body size: " +
+                   stringify(client_state.total_bytes_received) + " > " +
+                   stringify(client_state.max_body_size));
+            client_state.request->setStatusCode(413);
+        }
 
-		if (!should_continue_receiving) {
 
-			clients_state[client_fd].ready_to_read = false;
-			clients_state[client_fd].ready_to_write = true;
-			logger(STDOUT_FILENO, DEBUG, "Request complete for client " + stringify(client_fd) + ", ready for response");
-		} else {
+        bool should_continue_receiving = client_state.request->processReceivedData(
+            buffer.data(), bytes_read,
+            client_state.receiving_body,
+            client_state.expected_body_size
+        );
 
-			clients_state[client_fd].ready_to_read = true;
-			logger(STDOUT_FILENO, DEBUG, "Continuing to receive data for client " + stringify(client_fd));
-		}
 
-		clients_state[client_fd].last_activity = time(NULL);
-	}
+        if (!should_continue_receiving || client_state.request->getStatusCode() == 413) {
+            client_state.ready_to_read = false;
+            client_state.ready_to_write = true;
+        }
+
+        client_state.last_activity = time(NULL);
+    }
 }
 
 void Webserv::clientResponse(int client_fd, bool &close_connection) {
@@ -199,7 +261,7 @@ void Webserv::clientResponse(int client_fd, bool &close_connection) {
     } else {
         clients_state[client_fd].ready_to_write = false;
 
-        // Verificar header Connection para decidir si cerrar o mantener
+
         std::map<std::string, std::string> headers = clients_state[client_fd].request->getHeaders();
         std::string connection_header = headers["Connection"];
 
@@ -322,7 +384,7 @@ Session* Webserv::getSession(const std::string& session_id) {
 
     std::map<std::string, Session>::iterator it = sessions.find(session_id);
     if (it != sessions.end()) {
-        // Verificar si la sesión ha expirado
+
         if (time(NULL) - it->second.last_activity > session_timeout) {
             sessions.erase(it);
             return NULL;
@@ -395,6 +457,6 @@ std::string Webserv::createCookieHeader(const std::string& name, const std::stri
         cookie << "; Domain=" << domain;
     }
     cookie << "; Max-Age=" << max_age;
-    cookie << "; HttpOnly"; // Seguridad básica
+    cookie << "; HttpOnly";
     return cookie.str();
 }

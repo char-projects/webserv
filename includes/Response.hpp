@@ -3,7 +3,7 @@
 
 # include <string>
 # include <cstring>
-# include <dirent.h> // ListDirectory
+# include <dirent.h>
 # include "Webserv.hpp"
 # include "ResponseHeader.hpp"
 # include "ServerConfig.hpp"
@@ -59,7 +59,7 @@ class Response {
 
 		void				readContent(const std::string &path);
 		void				writeContent(const std::string &path, std::string content);
-		void				handleFileUpload(const std::string &content);
+		void				handleFileUpload();
 		void				deleteContent(const std::string &path);
 		void		 		ListDirectory(const std::string& path, const std::string& uri);
 		const std::string	getPathStatusCode();
@@ -75,7 +75,7 @@ class Response {
         void removeCookie(const std::string& name);
         std::string buildCookieHeaders();
 
-        // Métodos para sesiones
+
 
 
 };

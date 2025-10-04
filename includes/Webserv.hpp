@@ -52,6 +52,8 @@ struct ClientState {
 	time_t			last_activity;
 	size_t			expected_body_size;
 	size_t			total_bytes_received;
+ size_t          max_body_size;  // ← AÑADIR ESTO
+    bool            headers_parsed; // ← AÑADIR ESTO
 };
 
 

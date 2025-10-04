@@ -130,7 +130,7 @@ void Request::parseParameters(const std::string &param_str) {
 		end = param_str.find('&', start);
 	}
 
-	// Last parameter
+
 	std::string param = param_str.substr(start);
 	size_t eq_pos = param.find('=');
 	if (eq_pos != std::string::npos) {
@@ -163,7 +163,7 @@ void Request::parseRecvData() {
     std::istringstream request_stream(recv_data);
     std::string line;
 
-    // Parse request line
+
     std::string method_local, uri_local, http_version_local;
     if (std::getline(request_stream, line)) {
         std::istringstream line_stream(line);
@@ -176,7 +176,7 @@ void Request::parseRecvData() {
         return ;
     }
 
-    // Validate method
+
     bool valid_method = false;
     for (size_t i = 0; i < valid_methods.size(); ++i) {
         if (method_local == valid_methods[i]) {
@@ -203,10 +203,10 @@ void Request::parseRecvData() {
 	setHttpVersion(http_version_local);
 	setUri(clean_uri);
 	if (query_pos != std::string::npos) {
-		uri = uri_local; // Keep full URI with query string for getUri()
+		uri = uri_local;
 	}
 
-	// Set a default path (will be overridden by Response::resolveFilePath)
+
 	std::string serverRoot = config.getRoot();
 	if (serverRoot.empty())
 		serverRoot = "www";
@@ -229,7 +229,7 @@ void Request::parseRecvData() {
 	}
 	path = normalizePath(path);
 
-    // Parse headers
+
     while (std::getline(request_stream, line) && line != "\r") {
         size_t colon_pos = line.find(':');
         if (colon_pos != std::string::npos) {
@@ -239,13 +239,13 @@ void Request::parseRecvData() {
         }
     }
 
-    // The rest is the body
+
     std::string body_content;
     while (std::getline(request_stream, line)) {
         body_content += line + "\n";
     }
     if (!body_content.empty() && body_content[body_content.size() - 1] == '\n')
-        body_content.erase(body_content.size() - 1); // Remove the last newline character
+        body_content.erase(body_content.size() - 1);
     body = body_content;
 
 	if (method == "POST")
@@ -341,7 +341,7 @@ std::map<std::string, std::string> Request::getUploadedFiles() const {
 }
 void Request::parseMultipartFormData() {
 	if (!headers.count("Content-Type")) {
-		logger(STDOUT_FILENO, INFO, "No Content-Type header for multipart");
+		logger(STDOUT_FILENO, DEBUG, "No Content-Type header for multipart");
 		return ;
 	}
 
@@ -353,30 +353,30 @@ void Request::parseMultipartFormData() {
 		boundary = contentType.substr(boundaryPos + 9);
 		if (!boundary.empty() && boundary[0] == '"' && boundary[boundary.length()-1] == '"')
 			boundary = boundary.substr(1, boundary.length()-2);
-		logger(STDOUT_FILENO, INFO, "Multipart detected. Boundary: '" + boundary + "'");
+		logger(STDOUT_FILENO, DEBUG, "Multipart detected. Boundary: '" + boundary + "'");
 	}
 
 	if (!isMultipartFormData || boundary.empty()) {
-		logger(STDOUT_FILENO, INFO, "Not multipart or boundary empty");
+		logger(STDOUT_FILENO, DEBUG, "Not multipart or boundary empty");
 		return ;
 	}
 
 	std::string fullBoundary = "--" + boundary;
-	logger(STDOUT_FILENO, INFO, "Full boundary: '" + fullBoundary + "'");
-	logger(STDOUT_FILENO, INFO, "Body size: " + stringify(body.size()));
+	logger(STDOUT_FILENO, DEBUG, "Full boundary: '" + fullBoundary + "'");
+	logger(STDOUT_FILENO, DEBUG, "Body size: " + stringify(body.size()));
 
 	size_t pos = 0;
 	int partCount = 0;
 
 	while ((pos = body.find(fullBoundary, pos)) != std::string::npos) {
 		partCount++;
-		logger(STDOUT_FILENO, INFO, "Found boundary at position: " + stringify(pos));
+		logger(STDOUT_FILENO, DEBUG, "Found boundary at position: " + stringify(pos));
 
 		size_t partStart = pos + fullBoundary.length();
 		if (body.size() > partStart + 1 && body[partStart] == '\r' && body[partStart+1] == '\n')
 			partStart += 2;
 		else if (body.substr(partStart, 2) == "--") {
-			logger(STDOUT_FILENO, INFO, "Found closing boundary");
+			logger(STDOUT_FILENO, DEBUG, "Found closing boundary");
 			break;
 		}
 
@@ -387,15 +387,15 @@ void Request::parseMultipartFormData() {
 		}
 
 		std::string part = body.substr(partStart, partEnd - partStart);
-		logger(STDOUT_FILENO, INFO, "Part " + stringify(partCount) + " size: " + stringify(part.size()));
+		logger(STDOUT_FILENO, DEBUG, "Part " + stringify(partCount) + " size: " + stringify(part.size()));
 
 		size_t headerEnd = part.find("\r\n\r\n");
 		if (headerEnd != std::string::npos) {
 			std::string partHeaders = part.substr(0, headerEnd);
 			std::string partBody = part.substr(headerEnd + 4);
 
-			logger(STDOUT_FILENO, INFO, "Part headers size: " + stringify(partHeaders.size()));
-			logger(STDOUT_FILENO, INFO, "Part body size: " + stringify(partBody.size()));
+			logger(STDOUT_FILENO, DEBUG, "Part headers size: " + stringify(partHeaders.size()));
+			logger(STDOUT_FILENO, DEBUG, "Part body size: " + stringify(partBody.size()));
 
 			size_t namePos = partHeaders.find("name=\"");
 			size_t filenamePos = partHeaders.find("filename=\"");
@@ -410,7 +410,7 @@ void Request::parseMultipartFormData() {
 				std::string filename = partHeaders.substr(filenameStart, filenameEnd - filenameStart);
 
 
-				logger(STDOUT_FILENO, INFO, "Field name: " + fieldName + ", Original filename: " + filename);
+				logger(STDOUT_FILENO, DEBUG, "Field name: " + fieldName + ", Original filename: " + filename);
 
 
 				size_t lastSlash = filename.find_last_of("/\\");
@@ -424,8 +424,8 @@ void Request::parseMultipartFormData() {
 				while (filename.find("..") != std::string::npos)
 					filename.replace(filename.find(".."), 2, "_");
 
-				logger(STDOUT_FILENO, INFO, "Sanitized filename: " + filename);
-				logger(STDOUT_FILENO, INFO, "File data size: " + stringify(partBody.size()));
+				logger(STDOUT_FILENO, DEBUG, "Sanitized filename: " + filename);
+				logger(STDOUT_FILENO, DEBUG, "File data size: " + stringify(partBody.size()));
 
 
 				bool hasNullBytes = false;
@@ -435,7 +435,7 @@ void Request::parseMultipartFormData() {
 						break;
 					}
 				}
-				logger(STDOUT_FILENO, INFO, "File data contains null bytes: " + stringify(hasNullBytes));
+				logger(STDOUT_FILENO, DEBUG, "File data contains null bytes: " + stringify(hasNullBytes));
 
 				uploadedFiles[filename] = partBody;
 				logger(STDOUT_FILENO, SUCCESS, "Uploaded file stored: " + filename + " size: " + stringify(partBody.size()));
@@ -448,30 +448,65 @@ void Request::parseMultipartFormData() {
 		pos = partEnd;
 	}
 
-	logger(STDOUT_FILENO, INFO, "Total parts processed: " + stringify(partCount));
-	logger(STDOUT_FILENO, INFO, "Total files uploaded: " + stringify(uploadedFiles.size()));
 }
 
-
 bool Request::processReceivedData(const char* data, size_t bytes_read, bool& receiving_body, size_t& expected_body_size) {
-	logger(STDOUT_FILENO, INFO, "processReceivedData: " + stringify(bytes_read) + " bytes, headers_parsed: " + stringify(headers_parsed));
+    logger(STDOUT_FILENO, DEBUG, "processReceivedData: " + stringify(bytes_read) + " bytes, headers_parsed: " + stringify(headers_parsed));
+   if (!headers_parsed) {
+        size_t headers_end = recv_data.find("\r\n\r\n");
+        if (headers_end != std::string::npos) {
+            parseHeaders();
+            headers_parsed = true;
 
 
-	recv_data.append(data, bytes_read);
 
 
-	if (!headers_parsed) {
-		size_t headers_end = recv_data.find("\r\n\r\n");
-		if (headers_end != std::string::npos) {
-			logger(STDOUT_FILENO, INFO, "Headers complete, parsing...");
-			parseHeaders();
-			headers_parsed = true;
+        }
+    }
+
+    if (status_code == 413) {
+        logger(STDOUT_FILENO, DEBUG, "Already detected oversized request, skipping data");
+        return false;
+    }
+
+
+    size_t max_body_size = getMaxBodySize();
+    size_t current_total_size = recv_data.size() + bytes_read;
+
+    if (max_body_size > 0 && current_total_size > max_body_size) {
+        logger(STDOUT_FILENO, ERROR, "Request body too large during reception: " +
+               stringify(current_total_size) + " > " + stringify(max_body_size));
+        status_code = 413;
+
+
+        if (recv_data.size() < max_body_size) {
+            size_t bytes_to_keep = max_body_size - recv_data.size();
+            recv_data.append(data, bytes_to_keep);
+        }
+        return false;
+    }
+
+
+    recv_data.append(data, bytes_read);
+
+
+    if (!headers_parsed) {
+        size_t headers_end = recv_data.find("\r\n\r\n");
+        if (headers_end != std::string::npos) {
+            logger(STDOUT_FILENO, DEBUG, "Headers complete, parsing...");
+            parseHeaders();
+            headers_parsed = true;
+
+
+            if (status_code == 413) {
+                return false;
+            }
 
 
 			if (content_length > 0) {
 				receiving_body = true;
 				expected_body_size = content_length;
-				logger(STDOUT_FILENO, INFO, "Expecting body of " + stringify(content_length) + " bytes");
+				logger(STDOUT_FILENO, DEBUG, "Expecting body of " + stringify(content_length) + " bytes");
 
 
 				size_t headers_size = recv_data.find("\r\n\r\n") + 4;
@@ -488,7 +523,7 @@ bool Request::processReceivedData(const char* data, size_t bytes_read, bool& rec
 				}
 			} else {
 
-				logger(STDOUT_FILENO, INFO, "No body expected - parsing complete request");
+
 				parseRecvData();
 				receiving_body = false;
 				expected_body_size = 0;
@@ -521,46 +556,58 @@ bool Request::processReceivedData(const char* data, size_t bytes_read, bool& rec
 	return false;
 }
 
-
 void Request::parseHeaders() {
-	logger(STDOUT_FILENO, INFO, "=== PARSING HEADERS ===");
+    logger(STDOUT_FILENO, DEBUG, "=== PARSING HEADERS ===");
 
-	size_t headers_end = recv_data.find("\r\n\r\n");
-	std::string headers_str = recv_data.substr(0, headers_end);
+    size_t headers_end = recv_data.find("\r\n\r\n");
+    std::string headers_str = recv_data.substr(0, headers_end);
 
-	std::istringstream headers_stream(headers_str);
-	std::string line;
-
-
-	if (std::getline(headers_stream, line)) {
-		std::istringstream line_stream(line);
-		std::string method_local, uri_local, http_version_local;
-		if (line_stream >> method_local >> uri_local >> http_version_local) {
-			method = method_local;
-			uri = uri_local;
-			http_version = http_version_local;
-			logger(STDOUT_FILENO, INFO, "Request line: " + method + " " + uri + " " + http_version);
-		}
-	}
+    std::istringstream headers_stream(headers_str);
+    std::string line;
 
 
-	while (std::getline(headers_stream, line) && line != "\r") {
-		size_t colon_pos = line.find(':');
-		if (colon_pos != std::string::npos) {
-			std::string header_name = trim(line.substr(0, colon_pos));
-			std::string header_value = trim(line.substr(colon_pos + 1));
-			headers[header_name] = header_value;
-			logger(STDOUT_FILENO, INFO, "Header: " + header_name + ": " + header_value);
+    if (std::getline(headers_stream, line)) {
+        std::istringstream line_stream(line);
+        std::string method_local, uri_local, http_version_local;
+        if (line_stream >> method_local >> uri_local >> http_version_local) {
+            method = method_local;
+            uri = uri_local;
+            http_version = http_version_local;
+            logger(STDOUT_FILENO, DEBUG, "Request line: " + method + " " + uri + " " + http_version);
+        }
+    }
 
 
-			if (header_name == "Content-Length") {
-				content_length = atoi(header_value.c_str());
-				logger(STDOUT_FILENO, INFO, "Found Content-Length: " + stringify(content_length));
-			}
-		}
-	}
+    while (std::getline(headers_stream, line) && line != "\r") {
+        size_t colon_pos = line.find(':');
+        if (colon_pos != std::string::npos) {
+            std::string header_name = trim(line.substr(0, colon_pos));
+            std::string header_value = trim(line.substr(colon_pos + 1));
+            headers[header_name] = header_value;
+            logger(STDOUT_FILENO, DEBUG, "Header: " + header_name + ": " + header_value);
+
+            if (header_name == "Content-Length") {
+                content_length = atoi(header_value.c_str());
+                logger(STDOUT_FILENO, DEBUG, "Found Content-Length: " + stringify(content_length));
+
+
+                size_t max_body_size = getMaxBodySize();
+                if (max_body_size > 0 && content_length > max_body_size) {
+                    logger(STDOUT_FILENO, ERROR, "Content-Length exceeds limit at header parsing: " +
+                           stringify(content_length) + " > " + stringify(max_body_size));
+                    status_code = 413;
+                    return;
+                }
+            }
+        }
+    }
+
+
+    if (headers.count("Transfer-Encoding") && headers["Transfer-Encoding"] == "chunked") {
+
+        logger(STDOUT_FILENO, DEBUG, "Chunked transfer encoding detected");
+    }
 }
-
 
 bool Request::areHeadersComplete() const {
 	return headers_parsed;
@@ -571,6 +618,9 @@ size_t Request::getRemainingBodySize() const {
 	return content_length - body_bytes_received;
 }
 
+size_t Request::getMaxBodySize() const {
+    return config.getMaxBodySize();
+}
 
 void Request::reset() {
 	status_code = 200;

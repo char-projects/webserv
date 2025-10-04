@@ -84,9 +84,9 @@ class Request {
         void parseCookies();
         std::string getCookie(const std::string& name) const;
 
-        // Métodos para sesiones
-        std::string getSessionId() const;
 
+        std::string getSessionId() const;
+		size_t getMaxBodySize() const;
 };
 
 #endif
