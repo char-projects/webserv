@@ -52,8 +52,8 @@ struct ClientState {
 	time_t			last_activity;
 	size_t			expected_body_size;
 	size_t			total_bytes_received;
- size_t          max_body_size;  // ← AÑADIR ESTO
-    bool            headers_parsed; // ← AÑADIR ESTO
+ size_t          max_body_size;
+    bool            headers_parsed;
 };
 
 
@@ -97,7 +97,7 @@ class Webserv {
         void cleanupExpiredSessions();
         bool isValidSession(const std::string& session_id);
 
-        // Métodos para cookies
+
         std::string parseCookies(const std::map<std::string, std::string>& headers);
         std::map<std::string, std::string> parseCookieHeader(const std::string& cookie_header);
 		std::string createCookieHeader(const std::string& name, const std::string& value,

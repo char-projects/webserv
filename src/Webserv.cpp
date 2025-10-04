@@ -169,7 +169,7 @@ void Webserv::clientRequest(int client_fd, bool &close_connection) {
             client_state.request->setStatusCode(413);
             client_state.ready_to_read = false;
             client_state.ready_to_write = true;
-            return;
+            return ;
         }
 
 
@@ -201,7 +201,7 @@ void Webserv::clientRequest(int client_fd, bool &close_connection) {
                     client_state.ready_to_write = true;
                 }
             }
-            return;
+            return ;
         }
     }
 
