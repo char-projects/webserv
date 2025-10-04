@@ -105,31 +105,31 @@ const std::string Response::getPathStatusCode() {
 			error_page_path = "";
 			break;
 		case 400:
-			error_page_path = "src/error_pages/400.html";
+			error_page_path = ERROR_400_HTML;
 			break;
 		case 403:
 			error_page_path = ERROR_403_HTML;
 			break;
 		case 404:
-			error_page_path = "src/error_pages/404.html";
+			error_page_path = ERROR_404_HTML;
 			break;
 		case 405:
-			error_page_path = "src/error_pages/405.html";
+			error_page_path = ERROR_405_HTML;
 			break;
 		case 413:
-			error_page_path = "src/error_pages/413.html";
+			error_page_path = ERROR_413_HTML;
 			break;
 		case 500:
 			error_page_path = ERROR_500_HTML;
 			break;
 		case 502:
-			error_page_path = "src/error_pages/502.html";
+			error_page_path = ERROR_502_HTML;
 			break;
 		case 503:
-			error_page_path = "src/error_pages/503.html";
+			error_page_path = ERROR_503_HTML;
 			break;
 		case 504:
-			error_page_path = "src/error_pages/504.html";
+			error_page_path = ERROR_504_HTML;
 			break;
 		case 520:
 			error_page_path = "";
@@ -199,6 +199,10 @@ void Response::readContent(const std::string &path) {
 		executeCGI(path);
 		return ;
 	}
+	loc = findLocation(request.getUri());
+	bool indexFound = false;
+	const std::vector<std::string>& indexFiles = config.getIndexFiles();
+	std::string error_path;
 
 	switch (result) {
 		case PATH_IS_FILE:
@@ -216,20 +220,34 @@ void Response::readContent(const std::string &path) {
 			break;
 
 		case PATH_IS_DIRECTORY:
-			if (!config.getIndexFiles().empty()) {
-				index_file = path + "/" + config.getIndexFiles()[0];
-				if (pathIsFile(index_file)) {
-					readContent(index_file);
-					break;
-				}
+
+			if (path[path.size()-1] != '/') {
+				status_code = 301;
+				response_header->setLocation(request.getUri() + "/");
+				send_body.clear();
+				return;
 			}
-			loc = findLocation(request.getUri());
+
+			if (!config.getIndexFiles().empty()) {
+
+				for (size_t i = 0; i < indexFiles.size(); ++i) {
+					index_file = path + indexFiles[i];
+					if (pathIsFile(index_file)) {
+						readContent(index_file);
+						indexFound = true;
+						break;
+					}
+				}
+				if (indexFound) break;
+			}
+
+
+
 			if (loc && loc->getAutoIndex()) {
 				ListDirectory(path, request.getUri());
 			} else {
 				status_code = 403;
-
-				std::string error_path = getPathStatusCode();
+				error_path = getPathStatusCode();
 				if (pathIsFile(error_path)) {
 					std::ifstream file(error_path.c_str());
 					if (file.is_open()) {
@@ -602,31 +620,30 @@ void Response::reset() {
 
 
 bool Response::shouldExecuteAsCGI(const std::string &path) {
+    size_t dotPos = path.rfind('.');
+    if (dotPos == std::string::npos)
+        return false;
+    std::string ext = path.substr(dotPos);
+    if (ext != ".php" && ext != ".py" && ext != ".sh")
+        return false;
 
-	size_t dotPos = path.rfind('.');
-	if (dotPos == std::string::npos)
-		return false;
-	std::string ext = path.substr(dotPos);
-	if (ext != ".php" && ext != ".py" && ext != ".sh")
-		return false;
+    LocationConfig* loc = findLocation(request.getUri());
+    if (loc && loc->getCgiEnabled()) {
+        std::vector<std::pair<std::string, std::string> > cgiConfig = loc->getCgi();
+        for (size_t i = 0; i < cgiConfig.size(); ++i) {
+            if (cgiConfig[i].first == ext)
+                return true;
+        }
+    }
 
-	LocationConfig* loc = findLocation(request.getUri());
-	if (loc && loc->getCgiEnabled()) {
+    if (request.getUri().find("/cgi-bin/") == 0 || (loc && loc->getCgiEnabled()))
+        return true;
 
-		std::vector<std::pair<std::string, std::string> > cgiConfig = loc->getCgi();
-		for (size_t i = 0; i < cgiConfig.size(); ++i) {
-			if (cgiConfig[i].first == ext)
-				return true;
-		}
-	}
-
-	if (request.getUri().find("/cgi-bin/") == 0)
-		return true;
-	return false;
+    return false;
 }
 
 void Response::executeCGI(const std::string &path) {
-	// Resolve absolute path for CGI script
+
 	std::string absolutePath = path;
 	if (path[0] != '/') {
 		char* cwd = getcwd(NULL, 0);
@@ -635,14 +652,13 @@ void Response::executeCGI(const std::string &path) {
 			free(cwd);
 		}
 	}
-	
-	// Check if CGI script exists and is executable
+
 	if (!pathIsFile(absolutePath)) {
 		status_code = 404;
 		send_body = "CGI script not found: " + absolutePath;
 		return;
 	}
-	
+
 	std::map<std::string, std::string> cgiEnv;
 	Cgi cgi(absolutePath, cgiEnv);
 
@@ -683,8 +699,13 @@ void Response::executeCGI(const std::string &path) {
 
 	if (!cgi.execute()) {
 		status_code = 500;
-		send_body = "CGI execution failed";
-		return ;
+		std::string errorMsg = "CGI execution failed for: " + path;
+		if (cgi.getStatus() != 0) {
+			errorMsg += " (Exit status: " + stringify(cgi.getStatus()) + ")";
+		}
+		logger(STDOUT_FILENO, ERROR, errorMsg);
+		send_body = errorMsg;
+		return;
 	}
 
 	std::string cgiHeaders = cgi.parseHeaders(send_body);
@@ -721,40 +742,43 @@ void Response::executeCGI(const std::string &path) {
 }
 
 std::string Response::resolveFilePath(const std::string &uri) {
+    LocationConfig* loc = findLocation(uri);
+    std::string root;
 
-	LocationConfig* loc = findLocation(uri);
-	std::string root;
-	if (loc && !loc->getRoot().empty()) {
-		root = loc->getRoot();
-	} else {
-		root = config.getRoot();
-		if (root.empty()) {
-			root = "www";
-		}
-	}
+    if (loc && !loc->getRoot().empty()) {
+        root = loc->getRoot();
+    } else {
+        root = config.getRoot();
+        if (root.empty()) {
+            root = "www";
+        }
+    }
 
-	root = normalizePath(root);
-	if (!root.empty() && root[root.length()-1] == '/')
-		root = root.substr(0, root.length()-1);
+    root = normalizePath(root);
 
-	std::string cleanUri = uri;
-	size_t queryPos = uri.find('?');
-	if (queryPos != std::string::npos)
-		cleanUri = uri.substr(0, queryPos);
-	cleanUri = normalizePath(cleanUri);
+    if (root != "/" && !root.empty() && root[root.length()-1] == '/') {
+        root = root.substr(0, root.length()-1);
+    }
 
-	std::string filePath;
-	if (cleanUri == "/") {
-		filePath = root;
-		if (!config.getIndexFiles().empty()) {
-			filePath += "/" + config.getIndexFiles()[0];
-		} else {
-			filePath += "/index.html";
-		}
-	} else {
-		filePath = root + cleanUri;
-	}
+    std::string cleanUri = uri;
+    size_t queryPos = uri.find('?');
+    if (queryPos != std::string::npos) {
+        cleanUri = uri.substr(0, queryPos);
+    }
+    cleanUri = normalizePath(cleanUri);
 
-	filePath = normalizePath(filePath);
-	return filePath;
+    std::string filePath;
+    if (cleanUri == "/") {
+        filePath = root;
+        if (!config.getIndexFiles().empty()) {
+            filePath = normalizePath(filePath + "/" + config.getIndexFiles()[0]);
+        } else {
+            filePath = normalizePath(filePath + "/index.html");
+        }
+    } else {
+        filePath = normalizePath(root + cleanUri);
+    }
+
+    logger(STDOUT_FILENO, DEBUG, "Resolved file path: " + filePath + " for URI: " + uri);
+    return filePath;
 }

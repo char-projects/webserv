@@ -346,7 +346,8 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
             i++;
         }
     }
-    printConfig();
+	if (DEBUG_MODE)
+    	printConfig();
 }
 
 void ConfigParsing::printConfig() const {

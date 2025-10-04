@@ -205,7 +205,7 @@ void Request::parseRecvData() {
 	if (query_pos != std::string::npos) {
 		uri = uri_local; // Keep full URI with query string for getUri()
 	}
-	
+
 	// Set a default path (will be overridden by Response::resolveFilePath)
 	std::string serverRoot = config.getRoot();
 	if (serverRoot.empty())
@@ -220,12 +220,12 @@ void Request::parseRecvData() {
 	if (clean_uri == "/") {
 		path = serverRoot;
 		if (!config.getIndexFiles().empty()) {
-			path += "/" + config.getIndexFiles()[0];
+			path = normalizePath(path + "/" + config.getIndexFiles()[0]);
 		} else {
-			path += "/index.html";
+			path = normalizePath(path + "/index.html");
 		}
 	} else {
-		path = serverRoot + clean_uri;
+		path = normalizePath(serverRoot + clean_uri);
 	}
 	path = normalizePath(path);
 
@@ -251,25 +251,21 @@ void Request::parseRecvData() {
 	if (method == "POST")
 		parseMultipartFormData();
 
-
-	//  BORRAR
 	for (std::map<std::string, std::string>::iterator it = parameters.begin(); it != parameters.end(); ++it) {
-		logger(STDOUT_FILENO, INFO, "  " + it->first + " = " + it->second);
+		logger(STDOUT_FILENO, DEBUG, "  " + it->first + " = " + it->second);
 	}
-	logger(STDOUT_FILENO, INFO, "=== REQUEST PARSING ===");
-	logger(STDOUT_FILENO, INFO, "Method: " + method);
-	logger(STDOUT_FILENO, INFO, "URI: " + uri);
-	logger(STDOUT_FILENO, INFO, "Path: " + path);
-	logger(STDOUT_FILENO, INFO, "Content-Type: " + (headers.count("Content-Type") ? headers["Content-Type"] : "none"));
-	logger(STDOUT_FILENO, INFO, "Content-Length: " + (headers.count("Content-Length") ? headers["Content-Length"] : "none"));
-	logger(STDOUT_FILENO, INFO, "Body size: " + stringify(body.size()));
-	logger(STDOUT_FILENO, INFO, "Body:\t" + body);
-	logger(STDOUT_FILENO, INFO, "Headers:");
+	logger(STDOUT_FILENO, DEBUG, "=== REQUEST PARSING ===");
+	logger(STDOUT_FILENO, DEBUG, "Method: " + method);
+	logger(STDOUT_FILENO, DEBUG, "URI: " + uri);
+	logger(STDOUT_FILENO, DEBUG, "Path: " + path);
+	logger(STDOUT_FILENO, DEBUG, "Content-Type: " + (headers.count("Content-Type") ? headers["Content-Type"] : "none"));
+	logger(STDOUT_FILENO, DEBUG, "Content-Length: " + (headers.count("Content-Length") ? headers["Content-Length"] : "none"));
+	logger(STDOUT_FILENO, DEBUG, "Body size: " + stringify(body.size()));
+	logger(STDOUT_FILENO, DEBUG, "Body:\t" + body);
+	logger(STDOUT_FILENO, DEBUG, "Headers:");
 	for (std::map<std::string, std::string>::iterator it = headers.begin(); it != headers.end(); ++it) {
-		logger(STDOUT_FILENO, INFO, "  " + it->first + ": " + it->second);
+		logger(STDOUT_FILENO, DEBUG, "  " + it->first + ": " + it->second);
 	}
-	//  BORRAR
-
 
     status_code = 200;
 

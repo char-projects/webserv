@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include "LocationConfig.hpp"
 #include "ServerConfig.hpp"
+#include "utils.hpp"
 
 class ConfigParsing {
     private:
