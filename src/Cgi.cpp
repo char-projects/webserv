@@ -216,10 +216,10 @@ void Cgi::setupEnvironment(const std::string &method, const std::string &uri,
         env[headerName] = it->second;
     }
 
-    logger(STDOUT_FILENO, INFO, "CGI Environment:");
-    logger(STDOUT_FILENO, INFO, "  SCRIPT_FILENAME: " + env["SCRIPT_FILENAME"]);
-    logger(STDOUT_FILENO, INFO, "  SCRIPT_NAME: " + env["SCRIPT_NAME"]);
-    logger(STDOUT_FILENO, INFO, "  DOCUMENT_ROOT: " + env["DOCUMENT_ROOT"]);
+    logger(STDOUT_FILENO, DEBUG, "CGI Environment:");
+    logger(STDOUT_FILENO, DEBUG, "  SCRIPT_FILENAME: " + env["SCRIPT_FILENAME"]);
+    logger(STDOUT_FILENO, DEBUG, "  SCRIPT_NAME: " + env["SCRIPT_NAME"]);
+    logger(STDOUT_FILENO, DEBUG, "  DOCUMENT_ROOT: " + env["DOCUMENT_ROOT"]);
 }
 
 std::string Cgi::getInterpreter() const {

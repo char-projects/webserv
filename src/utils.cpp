@@ -1,6 +1,10 @@
 #include "../includes/utils.hpp"
 
 void logger(int out, e_message type, const std::string& message) {
+
+	if (type == DEBUG && !DEBUG_MODE)
+		return ;
+
 	const char* color_reset = "\033[0m";
 
 	static const char* colors[] = {"\033[1;31m", "\033[1;33m", "\033[1;34m", "\033[1;35m", "\033[1;32m"};

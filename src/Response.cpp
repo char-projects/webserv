@@ -197,6 +197,12 @@ void Response::readContent(const std::string &path) {
 		executeCGI(path);
 		return ;
 	}
+loc = findLocation(request.getUri());
+
+				bool indexFound = false;
+				const std::vector<std::string>& indexFiles = config.getIndexFiles();
+
+std::string error_path;
 
 	switch (result) {
 		case PATH_IS_FILE:
@@ -213,21 +219,37 @@ void Response::readContent(const std::string &path) {
 			file.close();
 			break;
 
+		// En el caso PATH_IS_DIRECTORY:
 		case PATH_IS_DIRECTORY:
-			if (!config.getIndexFiles().empty()) {
-				index_file = path + "/" + config.getIndexFiles()[0];
-				if (pathIsFile(index_file)) {
-					readContent(index_file);
-					break;
-				}
+			// Verificar si el path termina con slash
+			if (path[path.size()-1] != '/') {
+				status_code = 301;
+				response_header->setLocation(request.getUri() + "/");
+				send_body.clear();
+				return;
 			}
-			loc = findLocation(request.getUri());
+
+			// Buscar archivo índice
+			if (!config.getIndexFiles().empty()) {
+
+				for (size_t i = 0; i < indexFiles.size(); ++i) {
+					index_file = path + indexFiles[i];
+					if (pathIsFile(index_file)) {
+						readContent(index_file);
+						indexFound = true;
+						break;
+					}
+				}
+				if (indexFound) break;
+			}
+
+			// Si no hay archivo índice, verificar autoindex
+
 			if (loc && loc->getAutoIndex()) {
 				ListDirectory(path, request.getUri());
 			} else {
 				status_code = 403;
-
-				std::string error_path = getPathStatusCode();
+				error_path = getPathStatusCode();
 				if (pathIsFile(error_path)) {
 					std::ifstream file(error_path.c_str());
 					if (file.is_open()) {
@@ -707,40 +729,43 @@ void Response::executeCGI(const std::string &path) {
 }
 
 std::string Response::resolveFilePath(const std::string &uri) {
+    LocationConfig* loc = findLocation(uri);
+    std::string root;
 
-	LocationConfig* loc = findLocation(uri);
-	std::string root;
-	if (loc && !loc->getRoot().empty()) {
-		root = loc->getRoot();
-	} else {
-		root = config.getRoot();
-		if (root.empty()) {
-			root = "www";
-		}
-	}
+    if (loc && !loc->getRoot().empty()) {
+        root = loc->getRoot();
+    } else {
+        root = config.getRoot();
+        if (root.empty()) {
+            root = "www";
+        }
+    }
 
-	root = normalizePath(root);
-	if (!root.empty() && root[root.length()-1] == '/')
-		root = root.substr(0, root.length()-1);
+    root = normalizePath(root);
+    // Asegurar que root no termine con slash (a menos que sea solo "/")
+    if (root != "/" && !root.empty() && root[root.length()-1] == '/') {
+        root = root.substr(0, root.length()-1);
+    }
 
-	std::string cleanUri = uri;
-	size_t queryPos = uri.find('?');
-	if (queryPos != std::string::npos)
-		cleanUri = uri.substr(0, queryPos);
-	cleanUri = normalizePath(cleanUri);
+    std::string cleanUri = uri;
+    size_t queryPos = uri.find('?');
+    if (queryPos != std::string::npos) {
+        cleanUri = uri.substr(0, queryPos);
+    }
+    cleanUri = normalizePath(cleanUri);
 
-	std::string filePath;
-	if (cleanUri == "/") {
-		filePath = root;
-		if (!config.getIndexFiles().empty()) {
-			filePath += "/" + config.getIndexFiles()[0];
-		} else {
-			filePath += "/index.html";
-		}
-	} else {
-		filePath = root + cleanUri;
-	}
+    std::string filePath;
+    if (cleanUri == "/") {
+        filePath = root;
+        if (!config.getIndexFiles().empty()) {
+            filePath = normalizePath(filePath + "/" + config.getIndexFiles()[0]);
+        } else {
+            filePath = normalizePath(filePath + "/index.html");
+        }
+    } else {
+        filePath = normalizePath(root + cleanUri);
+    }
 
-	filePath = normalizePath(filePath);
-	return filePath;
+    logger(STDOUT_FILENO, DEBUG, "Resolved file path: " + filePath + " for URI: " + uri);
+    return filePath;
 }

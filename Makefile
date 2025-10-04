@@ -13,12 +13,18 @@ NO_COLOR				=	\033[0m
 OBJ 					= 	$(SRC:.cpp=.o)
 OBJ_DIR					=	obj
 OBJ_FILES				=	$(addprefix $(OBJ_DIR)/, $(OBJ))
-UPLOADS					=	www/upload
+DEBUG_MODE				=	true
 
 CFLAGS					=	-g -fsanitize=address -Werror -Wextra -Wall -std=c++98
 
+ifeq ($(DEBUG_MODE), true)
+    CFLAGS += -DDEBUG_MODE=true
+else
+    CFLAGS += -DDEBUG_MODE=false
+endif
+
 $(OBJ_DIR)/%.o			: 	src/%.cpp
-							@mkdir -p $(OBJ_DIR) $(UPLOADS_DIR)
+							@mkdir -p $(OBJ_DIR)
 							@c++ $(CFLAGS) -c $< -o $@
 
 all						:	$(NAME)
@@ -29,7 +35,7 @@ $(NAME)					:	$(OBJ_FILES)
 							@c++ $(CFLAGS) -o $(NAME) $(OBJ_FILES)
 
 clean					:
-							@rm -rf $(OBJ_DIR) $(UPLOADS)
+							@rm -rf $(OBJ_DIR)
 
 fclean					:	clean
 							@rm -rf $(NAME)
@@ -38,4 +44,12 @@ fclean					:	clean
 
 re						:	fclean all
 
-.PHONY					:	all clean fclean re
+debug-on:
+	@$(MAKE) DEBUG_MODE=true re
+
+debug-off:
+	@$(MAKE) DEBUG_MODE=false re
+
+MAKEFLAGS	+= --no-print-directory
+.PHONY					:	all clean fclean re debug-on debug-off
+-include $(D_FILES)

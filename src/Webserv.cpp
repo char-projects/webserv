@@ -167,11 +167,11 @@ void Webserv::clientRequest(int client_fd, bool &close_connection) {
 
 			clients_state[client_fd].ready_to_read = false;
 			clients_state[client_fd].ready_to_write = true;
-			logger(STDOUT_FILENO, INFO, "Request complete for client " + stringify(client_fd) + ", ready for response");
+			logger(STDOUT_FILENO, DEBUG, "Request complete for client " + stringify(client_fd) + ", ready for response");
 		} else {
 
 			clients_state[client_fd].ready_to_read = true;
-			logger(STDOUT_FILENO, INFO, "Continuing to receive data for client " + stringify(client_fd));
+			logger(STDOUT_FILENO, DEBUG, "Continuing to receive data for client " + stringify(client_fd));
 		}
 
 		clients_state[client_fd].last_activity = time(NULL);
@@ -209,6 +209,8 @@ void Webserv::start() {
 	fd_set read_fds, write_fds;
 
 	logger(STDOUT_FILENO, INFO, "Server ready to establish connections. PRESS CTRL + C TO EXIT");
+	logger(STDOUT_FILENO, INFO, "Enable debug mode to see more information");
+
 	while (active) {
 
 		activity = initializeSelect(read_fds, write_fds);
