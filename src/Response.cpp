@@ -180,7 +180,7 @@ void Response::readContent(const std::string &path) {
 		status_code = 500;
 		send_body.clear();
 		send_body = MESSAGE_LOOP;
-		return ;
+		return;
 	}
 
 	if (status_code != 200 && status_code != 201 && status_code != 204) {
@@ -198,14 +198,14 @@ void Response::readContent(const std::string &path) {
 		} else {
 			send_body = ERROR_403_HTML;
 		}
-		return ;
+		return;
 	}
 
 	PathType result = checkPath(path);
 	if (result == PATH_NOT_EXISTS) {
 		status_code = 404;
 		readContent(getPathStatusCode());
-		return ;
+		return;
 	}
 	std::string request_uri = request.getUri();
 	LocationConfig* loc =  findLocation(request.getUri());
@@ -217,12 +217,12 @@ void Response::readContent(const std::string &path) {
 		status_code = 301;
 		response_header->setLocation(request.getUri() + "/");
 		send_body.clear();
-		return ;
+		return;
 	}
 
 	if (shouldExecuteAsCGI(path)) {
 		executeCGI(path);
-		return ;
+		return;
 	}
 	loc = findLocation(request.getUri());
 	bool indexFound = false;
@@ -236,7 +236,7 @@ void Response::readContent(const std::string &path) {
 				status_code = 403;
 				readContent(getPathStatusCode());
 				logger(STDOUT_FILENO, ERROR, "Cannot open file: " + path);
-				return ;
+				return;
 			}
 			buffer << file.rdbuf();
 			send_body.clear();
@@ -324,7 +324,7 @@ void Response::readContent(const std::string &path) {
 			} else {
 				status_code = 520;
 				send_body.clear();
-				return ;
+				return;
 			}
 	}
 }
@@ -338,7 +338,7 @@ void Response::writeContent(const std::string &path, std::string content)
 
 	if (request.isMultipart() && !request.getUploadedFiles().empty()) {
 		handleFileUpload();
-		return ;
+		return;
 	}
 
 	std::ofstream	file;
@@ -355,7 +355,7 @@ void Response::writeContent(const std::string &path, std::string content)
 		{
 			status_code = 403;
 			readContent(getPathStatusCode());
-			return ;
+			return;
 		}
 		file << content;
 		file.close();
@@ -412,7 +412,7 @@ void Response::handleFileUpload() {
 			status_code = 500;
 			readContent(getPathStatusCode());
 			logger(STDOUT_FILENO, ERROR, "Cannot create upload directory: " + uploadDir);
-			return ;
+			return;
 		}
 	}
 
@@ -542,19 +542,19 @@ void Response::deleteContent(const std::string &path) {
 						logger(STDOUT_FILENO, ERROR, "File " + filename + " not found in upload directory: " + uploadDir);
 						status_code = 404;
 						send_body.clear();
-						return ;
+						return;
 					}
 				} else {
 					logger(STDOUT_FILENO, ERROR, "Cannot open upload directory: " + uploadDir);
 					status_code = 404;
 					send_body.clear();
-					return ;
+					return;
 				}
 			} else {
 				logger(STDOUT_FILENO, ERROR, "Upload directory not configured");
 				status_code = 500;
 				send_body.clear();
-				return ;
+				return;
 			}
 		}
 	}
@@ -582,7 +582,7 @@ void Response::ListDirectory(const std::string& path, const std::string& uri) {
 	if (!dir) {
 		status_code = 404;
 		readContent(getPathStatusCode());
-		return ;
+		return;
 	}
 
 	std::ostringstream listing;

@@ -1,15 +1,15 @@
 #ifndef RESPONSE_HPP
-# define RESPONSE_HPP
+#define RESPONSE_HPP
 
-# include <string>
-# include <cstring>
-# include <dirent.h>
-# include "Webserv.hpp"
-# include "ResponseHeader.hpp"
-# include "ServerConfig.hpp"
-# include "LocationConfig.hpp"
-# include "Request.hpp"
-# include "Cgi.hpp"
+#include <string>
+#include <cstring>
+#include <dirent.h>
+#include "Webserv.hpp"
+#include "ResponseHeader.hpp"
+#include "ServerConfig.hpp"
+#include "LocationConfig.hpp"
+#include "Request.hpp"
+#include "Cgi.hpp"
 
 #define ERROR_400_HTML "<html><body style=\"font-family:Arial,sans-serif;text-align:center;padding:50px\"><h1 style=\"color:#d32f2f\">400 Bad Request</h1><p>Your browser sent a request that this server could not understand.</p><hr><p>Webserv/42.0</p></body></html>"
 #define ERROR_403_HTML "<html><body style=\"font-family:Arial,sans-serif;text-align:center;padding:50px\"><h1 style=\"color:#d32f2f\">403 Forbidden</h1><p>You don't have permission to access this resource.</p><hr><p>Webserv/42.0</p></body></html>"

@@ -1,33 +1,36 @@
 #ifndef WEBSERV_HPP
-# define WEBSERV_HPP
+#define WEBSERV_HPP
 
-# include <iostream>
-# include <vector>
-# include <map>
-# include <unistd.h>
-# include <string.h>
+#include <iostream>
+#include <vector>
+#include <map>
+#include <unistd.h>
+#include <string.h>
 // select
-# include <sys/select.h>
-# include <sys/time.h>
+#include <sys/select.h>
+#include <sys/time.h>
 // sockets
-# include <sys/socket.h>
-# include <netinet/in.h>
-# include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 // socket non-blocking
-# include <fcntl.h>
-# include <iomanip>
+#include <fcntl.h>
+#include <iomanip>
 // Wervserv
-# include "Request.hpp"
-# include "Response.hpp"
-# include "ResponseHeader.hpp"
-# include "ConfigParsing.hpp"
-# include "ServerConfig.hpp"
+#include "Request.hpp"
+#include "Response.hpp"
+#include "ResponseHeader.hpp"
+#include "ConfigParsing.hpp"
+#include "ServerConfig.hpp"
 
-# define SERVER_NAME		"Webserv/42.0"
-# define BUFFER_RECV_SIZE	8192
-# define MAX_BODY_SIZE		1024
-# define UPLOADS			"www/upload"
+#define SERVER_NAME		"Webserv/42.0"
+#define BUFFER_RECV_SIZE	8192
+#define MAX_BODY_SIZE		1024
+#define UPLOADS			"www/upload"
 
+#ifndef MSG_PEEK
+	#define MSG_PEEK 0x02
+#endif
 
 class Request;
 class Response;
@@ -67,7 +70,9 @@ class Webserv {
 		void initializePorts();
 		void start();
 		void stop();
-
+    static void registerInstance(Webserv* instance);
+    static void unregisterInstance();
+    static void setupSignalHandlers();
 	private:
 		ConfigParsing&					config;
 		std::map<int, ClientState>		clients_state;
@@ -104,15 +109,7 @@ class Webserv {
                                       time_t max_age, const std::string& path,
                                       const std::string& domain);
 
-		static void setSignalInstance(Webserv* instance) {
-			signal_instance = instance;
-		}
 
-		static void signalHandler(int signum) {
-			(void)signum;
-			if (signal_instance)
-				signal_instance->stop();
-		}
 };
 
 #endif

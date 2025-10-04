@@ -28,7 +28,7 @@ $(OBJ_DIR)/%.o			: 	src/%.cpp
 							@c++ $(CFLAGS) -c $< -o $@
 
 all						:	$(NAME)
-							@echo "$(GREEN)Starting webserver...$(NO_COLOR)"
+							@echo "$(GREEN)Server compiled and ready to run. Execute:$(NAME)$(NO_COLOR)"
 
 $(NAME)					:	$(OBJ_FILES)
 							@mkdir -p $(OBJ_DIR)
@@ -39,7 +39,7 @@ clean					:
 
 fclean					:	clean
 							@rm -rf $(NAME)
-							@echo "$(RED)Webserver stopped$(NO_COLOR)"
+							@echo "$(RED)Terminating potential online servers$(NO_COLOR)"
 							@killall $(NAME) 2>/dev/null || true
 
 re						:	fclean all

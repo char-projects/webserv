@@ -158,6 +158,18 @@ void Webserv::handleConnections(fd_set &read_fds) {
 void Webserv::clientRequest(int client_fd, bool &close_connection) {
     ClientState& client_state = clients_state[client_fd];
 
+    if (client_state.total_bytes_received == 0 && !client_state.headers_parsed) {
+        char buffer[10];
+        ssize_t peek_bytes = recv(client_fd, buffer, sizeof(buffer) - 1, MSG_PEEK);
+
+        if (peek_bytes > 0 && static_cast<unsigned char>(buffer[0]) == 0x16) {
+            logger(STDOUT_FILENO, INFO, "HTTPS connection refused - client: " + stringify(client_fd));
+			std::string error_response = ERROR_400_HTML;
+            send(client_fd, error_response.c_str(), error_response.size(), 0);
+            close_connection = true;
+            return;
+        }
+    }
 
     if (client_state.headers_parsed && client_state.max_body_size > 0) {
         if (client_state.total_bytes_received >= client_state.max_body_size) {
@@ -169,7 +181,7 @@ void Webserv::clientRequest(int client_fd, bool &close_connection) {
             client_state.request->setStatusCode(413);
             client_state.ready_to_read = false;
             client_state.ready_to_write = true;
-            return ;
+            return;
         }
 
 
@@ -201,7 +213,7 @@ void Webserv::clientRequest(int client_fd, bool &close_connection) {
                     client_state.ready_to_write = true;
                 }
             }
-            return ;
+            return;
         }
     }
 
@@ -219,7 +231,7 @@ void Webserv::clientRequest(int client_fd, bool &close_connection) {
 		}
 		close_connection = true;
 	} else {
-    client_state.total_bytes_received += bytes_read;
+   		client_state.total_bytes_received += bytes_read;
 
 
         if (client_state.max_body_size > 0 &&

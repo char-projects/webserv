@@ -157,7 +157,7 @@ void Request::parseRecvData() {
 
     if (recv_data.empty()) {
         status_code = 400;
-        return ;
+        return;
     }
 
     std::istringstream request_stream(recv_data);
@@ -169,11 +169,11 @@ void Request::parseRecvData() {
         std::istringstream line_stream(line);
         if (!(line_stream >> method_local >> uri_local >> http_version_local)) {
             status_code = 400;
-            return ;
+            return;
         }
     } else {
         status_code = 400;
-        return ;
+        return;
     }
 
 
@@ -187,7 +187,7 @@ void Request::parseRecvData() {
     if (!valid_method) {
         method = "UNKNOWN";
         status_code = 405;
-        return ;
+        return;
     }
 
     size_t query_pos = uri_local.find('?');
@@ -281,7 +281,7 @@ void Request::setRecvData(const std::string& src_recv_data, size_t bytes_read) {
 	if (bytes_read <= 0 || bytes_read > BUFFER_RECV_SIZE) {
 		logger(STDOUT_FILENO, ERROR, "Error reading from client or connection closed");
         status_code = 400;
-		return ;
+		return;
 	}
     if (!recv_data.empty()) {
         parseRecvData();
@@ -342,7 +342,7 @@ std::map<std::string, std::string> Request::getUploadedFiles() const {
 void Request::parseMultipartFormData() {
 	if (!headers.count("Content-Type")) {
 		logger(STDOUT_FILENO, DEBUG, "No Content-Type header for multipart");
-		return ;
+		return;
 	}
 
 	std::string contentType = headers["Content-Type"];
@@ -358,7 +358,7 @@ void Request::parseMultipartFormData() {
 
 	if (!isMultipartFormData || boundary.empty()) {
 		logger(STDOUT_FILENO, DEBUG, "Not multipart or boundary empty");
-		return ;
+		return;
 	}
 
 	std::string fullBoundary = "--" + boundary;

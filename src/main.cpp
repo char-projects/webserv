@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
 	ConfigParsing config;
 	config.setConfigFile(config_file);
 	if (!config.isFileReadable(config_file)) {
-		std::cerr << "Configuration file is not readable" << std::endl;
+		logger(STDOUT_FILENO, ERROR,  "Configuration file is not readable");
 		return (EXIT_FAILURE);
 	}
 	std::vector<std::string> tokens = config.tokenize(config_file, " \n\t");

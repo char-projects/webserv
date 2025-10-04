@@ -28,9 +28,9 @@ class Cgi {
         int checkExtension();
         void handleCookies(std::map<std::string, std::string> &headers);
         void setPostData(const std::string &data);
-        void setupEnvironment(const std::string &method, const std::string &uri, 
+        void setupEnvironment(const std::string &method, const std::string &uri,
                             const std::string &queryString, const std::string &contentType,
-                            size_t contentLength, const std::string &serverName, 
+                            size_t contentLength, const std::string &serverName,
                             const std::string &serverPort, const std::map<std::string, std::string> &headers);
         std::string getInterpreter() const;
         std::string parseHeaders(std::string &body);

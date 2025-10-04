@@ -83,7 +83,7 @@ void LocationConfig::setAutoIndex(const std::string &autoIndex) {
     else if (autoIndex == "off")
         this->autoIndex = false;
     else
-        std::cerr << "Error: Invalid value for autoindex" << std::endl;
+        logger(STDOUT_FILENO, ERROR,  "Error: Invalid value for autoindex");
 }
 
 void LocationConfig::addRedirect(std::string const &oldPath, std::string const &newPath) {

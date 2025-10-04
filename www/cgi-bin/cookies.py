@@ -6,7 +6,6 @@ import cgi
 import html
 import re
 
-# Usar los mismos nombres que en el servidor C++
 SESSION_COOKIE_NAME = 'SESSIONID'
 USER_DATA_COOKIE = 'userName'
 
@@ -22,7 +21,6 @@ def get_cookie_value(name):
     return None
 
 def get_all_cookies():
-    """Devuelve un diccionario con todas las cookies"""
     cookie_header = os.environ.get('HTTP_COOKIE')
     if not cookie_header:
         return {}
@@ -39,20 +37,16 @@ def generate_new_session_id():
     return str(int(time.time())) + "-websvrsess"
 
 def delete_cookie(name):
-    """Genera header para eliminar una cookie"""
     return f"Set-Cookie: {name}=; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/"
 
 def sanitize_cookie_name(name):
-    """Sanitiza el nombre de la cookie para que sea válido"""
-    # Solo permitir caracteres alfanuméricos, guiones y guiones bajos
+
     return re.sub(r'[^a-zA-Z0-9_-]', '', name)
 
 def sanitize_cookie_value(value):
-    """Sanitiza el valor de la cookie"""
-    # Eliminar caracteres problemáticos
     return re.sub(r'[;\r\n]', '', value)
 
-# Procesar parámetros del formulario
+
 form = cgi.FieldStorage()
 input_name = form.getvalue('user_name', '')
 custom_cookie_name = form.getvalue('cookie_name', '')
@@ -72,53 +66,39 @@ current_user_name = ""
 session_message = ""
 custom_message = ""
 
-# Procesar eliminación de sesión
 if delete_session:
     response_cookie_headers.append(delete_cookie(SESSION_COOKIE_NAME))
     session_id = None
     session_message = "🗑️ <strong>Session deleted!</strong>"
-
-# Procesar eliminación del nombre
 elif delete_name:
     response_cookie_headers.append(delete_cookie(USER_DATA_COOKIE))
     current_user_name = ""
     message = "🗑️ <strong>Name deleted!</strong>"
-
-# Procesar eliminación de cookie personalizada
 elif delete_custom and custom_cookie_name:
     clean_name = sanitize_cookie_name(custom_cookie_name)
     if clean_name:
         response_cookie_headers.append(delete_cookie(clean_name))
         custom_message = f"🗑️ <strong>Cookie '{clean_name}' deleted!</strong>"
-
-# Procesar nueva cookie personalizada
 elif custom_cookie_name and custom_cookie_value:
     clean_name = sanitize_cookie_name(custom_cookie_name)
     clean_value = sanitize_cookie_value(custom_cookie_value)
-
     if clean_name and clean_value:
         custom_cookie_header = f"Set-Cookie: {clean_name}={clean_value}; Max-Age=3600; Path=/; HttpOnly"
         response_cookie_headers.append(custom_cookie_header)
         custom_message = f"✅ <strong>Custom cookie set!</strong> Cookie '{clean_name}' = '{clean_value}'"
     else:
         custom_message = "❌ <strong>Error:</strong> Invalid cookie name or value"
-
-# Procesar nuevo nombre
 elif input_name:
     current_user_name = html.escape(input_name)
     name_cookie_header = f"Set-Cookie: {USER_DATA_COOKIE}={current_user_name}; Max-Age=3600; Path=/; HttpOnly"
     response_cookie_headers.append(name_cookie_header)
     message = "✅ <strong>Data Stored!</strong> Your name has been saved in a cookie."
-
-# Usar nombre almacenado si existe
 elif stored_user_name:
     current_user_name = stored_user_name
     message = "✅ <strong>Data Found!</strong> Welcome back, <strong>{}</strong> (data retrieved from cookie).".format(current_user_name)
-
-# Gestión de sesión
 if session_id:
     new_session = False
-    if not session_message:  # Solo mostrar mensaje si no estamos eliminando
+    if not session_message:
         session_message = "✅ <strong>Session Found!</strong> Your ID is: <strong>{}</strong>".format(session_id)
 else:
     session_id = generate_new_session_id()
@@ -126,16 +106,13 @@ else:
     response_cookie_headers.append(session_cookie_header)
     session_message = "⭐ <strong>New Session Created!</strong> Your new ID is: <strong>{}</strong>".format(session_id)
 
-# Determinar color de fondo
 bg_color = "#e6ffe6" if not new_session and stored_user_name else "#ffffe6"
 
-# Enviar headers
 print("Content-Type: text/html")
 for header in response_cookie_headers:
     print(header)
-print()  # Línea vacía que separa headers del body
+print()
 
-# Construir tabla de cookies existentes
 cookies_table = ""
 if all_cookies:
     cookies_table = "<table style='width:100%; border-collapse: collapse;'>"
@@ -150,7 +127,6 @@ if all_cookies:
         cookies_table += f"<td style='padding: 8px; border: 1px solid #ddd;'><code>{html.escape(cookie_name)}</code></td>"
         cookies_table += f"<td style='padding: 8px; border: 1px solid #ddd;'><code>{html.escape(cookie_value[:50])}{'...' if len(cookie_value) > 50 else ''}</code></td>"
 
-        # Botón de eliminar solo para cookies no-sistema
         if cookie_name not in [SESSION_COOKIE_NAME]:
             cookies_table += f"""<td style='padding: 8px; border: 1px solid #ddd;'>
                 <form method="get" action="/cgi-bin/cookies.py" style="margin: 0;">
@@ -168,7 +144,7 @@ if all_cookies:
 else:
     cookies_table = "<p><em>No cookies received from client</em></p>"
 
-# Generar HTML
+
 html_content = """
 <!DOCTYPE html>
 <html lang="en">

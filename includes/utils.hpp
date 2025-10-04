@@ -1,20 +1,19 @@
 #ifndef UTILS_H
-# define UTILS_H
+#define UTILS_H
 
-# include <iostream>
-# include <string>
-# include <fstream>
-# include <unistd.h>
-# include <sstream>
-# include <vector>
+#include <iostream>
+#include <string>
+#include <fstream>
+#include <unistd.h>
+#include <sstream>
+#include <vector>
 // pathIsFile
 #include <sys/stat.h>
 
-# define LOG_FILE			3
-# define DEFAULT_ERROR_LOG	"./logger.log"
-
+#define LOG_FILE			3
+#define DEFAULT_ERROR_LOG	"./logger.log"
 #ifndef DEBUG_MODE
-# define DEBUG_MODE false
+	#define DEBUG_MODE false
 #endif
 
 enum PathType {

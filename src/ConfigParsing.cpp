@@ -85,7 +85,7 @@ std::vector<std::string> ConfigParsing::tokenize(const std::string &filename, co
         if (line.find("}") != std::string::npos)
             brace--;
         if (!line.empty() && line[line.length() - 1] != ';' && line[line.length() - 1] != '{' && line[line.length() - 1] != '}') {
-            std::cerr << "Error: Missing semicolon or brace in line: " << line << std::endl;
+            logger(STDOUT_FILENO, ERROR, "Error: Missing semicolon or brace in line: " + line);
             continue;
         } else if (!line.empty() && line[line.length() - 1] == ';') {
             line = line.substr(0, line.length() - 1); // remove the semicolon
@@ -103,9 +103,9 @@ std::vector<std::string> ConfigParsing::tokenize(const std::string &filename, co
         }
     }
     if (brace < 0)
-        std::cerr << "Error: Unmatched closing brace '}'" << std::endl;
+        logger(STDOUT_FILENO, ERROR, "Error: Unmatched closing brace '}'");
     if (brace > 0)
-        std::cerr << "Error: Unmatched opening brace '{'" << std::endl;
+        logger(STDOUT_FILENO, ERROR, "Error: Unmatched opening brace '{'");
     file.close();
     return tokens;
 }
@@ -124,7 +124,7 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                     while (j < tokens.size() && isdigit(tokens[j][0])) {
                         int port = atoi(tokens[j].c_str());
                         if (port <= 0 || port > 65535) {
-                            std::cerr << "Error: Invalid port number " << tokens[j] << std::endl;
+                            logger(STDOUT_FILENO, ERROR, "Error: Invalid port number " + tokens[j]);
                             j++;
                             continue;
                         }
@@ -137,7 +137,7 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                         server->setHost(tokens[i + 1]);
                         i += 2;
                     } else {
-                        std::cerr << "Error: Expected server name after 'server_name'" << std::endl;
+                        logger(STDOUT_FILENO, ERROR, "Error: Expected server name after 'server_name'");
                         i++;
                     }
                 } else if (tokens[i] == "root") {
@@ -145,7 +145,7 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                         server->setRoot(tokens[i + 1]);
                         i += 2;
                     } else {
-                        std::cerr << "Error: Expected path after 'root'" << std::endl;
+                        logger(STDOUT_FILENO, ERROR, "Error: Expected path after 'root'");
                         i++;
                     }
                 } else if (tokens[i] == "error_page") {
@@ -169,7 +169,7 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                         }
                         i = j + 1;
                     } else {
-                        std::cerr << "Error: Invalid error_page directive" << std::endl;
+                        logger(STDOUT_FILENO, ERROR, "Error: Invalid error_page directive");
                         i++;
                     }
 				} else if (tokens[i] == "index") {
@@ -188,7 +188,7 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                         server->setMaxBodySize(maxBodySize);
                         i += 2;
                     } else {
-                        std::cerr << "Error: Expected size after 'client_max_body_size'" << std::endl;
+                        logger(STDOUT_FILENO, ERROR, "Error: Expected size after 'client_max");
                         i++;
                     }
 				} else if (tokens[i] == "method") {
@@ -211,7 +211,7 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                                     location->setAutoIndex(tokens[i + 1]);
                                     i += 2;
                                 } else {
-                                    std::cerr << "Error: Expected 'on' or 'off' after 'autoindex'" << std::endl;
+                                    logger(STDOUT_FILENO, ERROR, "Error: Expected 'on' or 'off' after 'autoindex'");
                                     i++;
                                 }
 							} else if (tokens[i] == "upload_path") {
@@ -219,7 +219,7 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
 										location->setUploadPath(tokens[i + 1]);
 										i += 2;
 									} else {
-										std::cerr << "Error: Expected path after 'upload_path'" << std::endl;
+										logger(STDOUT_FILENO, ERROR, "Error: Expected path after 'upload_path'");
 										i++;
 									}
 
@@ -229,7 +229,7 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                                     location->addRedirect(location->getLocationPath(), tokens[i + 2]);
                                     i += 3;
                                 } else {
-                                    std::cerr << "Error: Expected return code and path after 'return'" << std::endl;
+                                    logger(STDOUT_FILENO, ERROR, "Error: Expected return code and path after 'return'");
                                     i++;
                                 }
                             } else if (tokens[i] == "try_files") {
@@ -238,7 +238,7 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                                     // if (tokens[i].find("=") != std::string::npos) {
                                     //     std::string codeStr = tokens[i].substr(1);
                                     //     int code = atoi(codeStr.c_str());
-                                    //     std::cout << "Return error code " << code << " if not found" << std::endl;
+                                    //     logger(STDOUT_FILENO, DEBUG, "Return error code " + code + " if not found");
                                     // } else {
                                         location->addTryFile(tokens[i]);
                                     // }
@@ -250,7 +250,7 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                                     location->setMaxBodySize(maxBodySize);
                                     i += 2;
                                 } else {
-                                    std::cerr << "Error: Expected size after 'client_max_body_size'" << std::endl;
+                                    logger(STDOUT_FILENO, ERROR, "Error: Expected size after 'client_max_body_size'");
                                     i++;
                                 }
                             } else if (tokens[i] == "root") {
@@ -258,7 +258,7 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                                     location->setRoot(tokens[i + 1]);
                                     i += 2;
                                 } else {
-                                    std::cerr << "Error: Expected path after 'root'" << std::endl;
+                                    logger(STDOUT_FILENO, ERROR, "Error: Expected path after 'root'");
                                     i++;
                                 }
                             } else if (tokens[i] == "method") {
@@ -277,10 +277,10 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                                     else if (tokens[i + 1] == "off")
                                         location->setCgiEnabled(false);
                                     else
-                                        std::cerr << "Error: Invalid value for cgi_enabled" << std::endl;
+                                        logger(STDOUT_FILENO, ERROR, "Error: Invalid value for cgi_enabled");
                                     i += 2;
                                 } else {
-                                    std::cerr << "Error: Expected 'on' or 'off' after 'cgi_enabled'" << std::endl;
+                                    logger(STDOUT_FILENO, ERROR, "Error: Expected 'on' or 'off' after 'cgi_enabled'");
                                     i++;
                                 }
                             } else if (tokens[i] == "cgi") {
@@ -288,7 +288,7 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                                     location->addCgi(tokens[i + 1], tokens[i + 2]);
                                     i += 3;
                                 } else {
-                                    std::cerr << "Error: Expected extension and interpreter after 'cgi'" << std::endl;
+                                    logger(STDOUT_FILENO, ERROR, "Error: Expected extension and interpreter after 'cgi'");
                                     i++;
                                 }
                             } else if (tokens[i] == "include") {
@@ -296,7 +296,7 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                                     location->addCgiInclude(tokens[i + 1]);
                                     i += 2;
                                 } else {
-                                    std::cerr << "Error: Expected file path after 'include'" << std::endl;
+                                    logger(STDOUT_FILENO, ERROR, "Error: Expected file path after 'include'");
                                     i++;
                                 }
                             } else if (tokens[i] == "fastcgi_pass") {
@@ -304,7 +304,7 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                                     location->setFastcgiPass(tokens[i + 1]);
                                     i += 2;
                                 } else {
-                                    std::cerr << "Error: Expected address after 'fastcgi_pass'" << std::endl;
+                                    logger(STDOUT_FILENO, ERROR, "Error: Expected address after 'fastcgi_pass'");
                                     i++;
                                 }
                             } else if (tokens[i] == "fastcgi_index") {
@@ -312,7 +312,7 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                                     location->setFastcgiIndex(tokens[i + 1]);
                                     i += 2;
                                 } else {
-                                    std::cerr << "Error: Expected file name after 'fastcgi_index'" << std::endl;
+                                    logger(STDOUT_FILENO, ERROR, "Error: Expected file name after 'fastcgi_index'");
                                     i++;
                                 }
                             } else if (tokens[i] == "fastcgi_param") {
@@ -320,11 +320,11 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                                     location->addFastcgiParam(tokens[i + 1], tokens[i + 2]);
                                     i += 3;
                                 } else {
-                                    std::cerr << "Error: Expected parameter and value after 'fastcgi_param'" << std::endl;
+                                    logger(STDOUT_FILENO, ERROR, "Error: Expected parameter and value after 'fastcgi_param'");
                                     i++;
                                 }
                             } else {
-                                std::cerr << "Unknown directive in location block: " << tokens[i] << std::endl;
+                                logger(STDOUT_FILENO, ERROR, "Unknown directive in location block: " + tokens[i]);
                                 i++;
                             }
                         }
@@ -332,7 +332,7 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                         if (i < tokens.size() && tokens[i] == "}")
                             i++;
                     } else {
-                        std::cerr << "Error: Expected path and '{' after 'location'" << std::endl;
+                        logger(STDOUT_FILENO, ERROR, "Error: Expected path and '{' after 'location'");
                         i++;
                     }
                 } else {
@@ -352,135 +352,123 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
 
 void ConfigParsing::printConfig() const {
     for (size_t i = 0; i < servers.size(); i++) {
-        std::cout << "Server " << i + 1 << ":" << std::endl;
-        std::cout << "  Host: " << servers[i]->getHost() << std::endl;
-        std::cout << "  Ports: ";
+        logger(STDOUT_FILENO, DEBUG, "Server " + stringify(i + 1) + ":");
+        logger(STDOUT_FILENO, DEBUG, "  Host: " + servers[i]->getHost());
+        logger(STDOUT_FILENO, DEBUG, "  Ports: ");
         std::vector<int> ports = servers[i]->getPorts();
         for (size_t j = 0; j < ports.size(); j++) {
-            std::cout << ports[j];
+            logger(STDOUT_FILENO, DEBUG, stringify(ports[j]));
             if (j < ports.size() - 1)
-                std::cout << ", ";
+                logger(STDOUT_FILENO, DEBUG, ", ");
         }
-        std::cout << std::endl;
-        std::cout << "  Root: " << servers[i]->getRoot() << std::endl;
-        std::cout << "  Index: ";
+        logger(STDOUT_FILENO, DEBUG, "  Root: " + servers[i]->getRoot());
+        logger(STDOUT_FILENO, DEBUG, "  Index: ");
         for (size_t j = 0; j < servers[i]->getIndexFiles().size(); j++) {
-            std::cout << servers[i]->getIndexFiles()[j];
+            logger(STDOUT_FILENO, DEBUG, servers[i]->getIndexFiles()[j]);
             if (j < servers[i]->getIndexFiles().size() - 1)
-                std::cout << ", ";
+                logger(STDOUT_FILENO, DEBUG, ", ");
         }
-        std::cout << std::endl;
-        std::cout << "  Error Pages:" << std::endl;
+        logger(STDOUT_FILENO, DEBUG, "  Error Pages:");
         for (size_t j = 0; j < servers[i]->getErrorPages().size(); j++) {
-            std::cout << "    " << servers[i]->getErrorPages()[j].second
-                << "->" << servers[i]->getErrorPages()[j].first << std::endl;
+            logger(STDOUT_FILENO, DEBUG, "    " + stringify(servers[i]->getErrorPages()[j].second) +
+                   "->" + servers[i]->getErrorPages()[j].first);
         }
         if (servers[i]->getMaxBodySize() > 0)
-            std::cout << "  Max Body Size: " << servers[i]->getMaxBodySize() << " bytes";
+            logger(STDOUT_FILENO, DEBUG, "  Max Body Size: " + stringify(servers[i]->getMaxBodySize()) + " bytes");
         if (!servers[i]->getMethods().empty()) {
-            std::cout << std::endl << "  Methods: ";
+            logger(STDOUT_FILENO, DEBUG, "  Methods: ");
             std::vector<std::string> methods = servers[i]->getMethods();
             for (size_t j = 0; j < methods.size(); j++) {
-                std::cout << methods[j];
+                logger(STDOUT_FILENO, DEBUG, methods[j]);
                 if (j < methods.size() - 1)
-                    std::cout << ", ";
+                    logger(STDOUT_FILENO, DEBUG, ", ");
             }
         }
-        std::cout << std::endl;
-        std::cout << "  Locations: ";
+        logger(STDOUT_FILENO, DEBUG, "  Locations: ");
         std::map<ServerConfig*, std::vector<LocationConfig*> >::const_iterator locIt = locations.find(servers[i]);
         if (locIt != locations.end()) {
             const std::vector<LocationConfig*>& locVec = locIt->second;
             for (size_t j = 0; j < locVec.size(); j++) {
-                std::cout << locVec[j]->getLocationPath();
+                logger(STDOUT_FILENO, DEBUG, locVec[j]->getLocationPath());
                 if (j < locVec.size() - 1)
-                    std::cout << ", ";
+                    logger(STDOUT_FILENO, DEBUG, ", ");
             }
         }
-        std::cout << std::endl;
     }
 
-    std::cout << std::endl;
     size_t locCount = 1;
     for (std::map<ServerConfig*, std::vector<LocationConfig*> >::const_iterator it = locations.begin(); it != locations.end(); ++it) {
         for (size_t i = 0; i < it->second.size(); i++) {
-            std::cout << "Location " << locCount << ":" << std::endl;
+            logger(STDOUT_FILENO, DEBUG, "Location " + stringify(locCount) + ": ");
             if (!it->second[i]->getLocationPath().empty())
-                std::cout << "  Path: " << it->second[i]->getLocationPath() << std::endl;
-            std::cout << "  AutoIndex: " << (it->second[i]->getAutoIndex() ? "on" : "off") << std::endl;
+                logger(STDOUT_FILENO, DEBUG, "  Path: " + it->second[i]->getLocationPath());
+            logger(STDOUT_FILENO, DEBUG, "  AutoIndex: " + stringify(it->second[i]->getAutoIndex() ? "on" : "off"));
             if (!it->second[i]->getRedirects().empty()) {
-                std::cout << "  Redirects: ";
+                logger(STDOUT_FILENO, DEBUG, "  Redirects: ");
                 std::vector<std::pair<std::string, std::string> > redirects = it->second[i]->getRedirects();
                 for (size_t j = 0; j < redirects.size(); j++) {
-                    std::cout << redirects[j].first << "->" << redirects[j].second;
+                    logger(STDOUT_FILENO, DEBUG, redirects[j].first + "->" + redirects[j].second);
                     if (j < redirects.size() - 1)
-                        std::cout << ", ";
+                        logger(STDOUT_FILENO, DEBUG, ", ");
                 }
-                std::cout << std::endl;
             }
             if (!it->second[i]->getTryFiles().empty()) {
-                std::cout << "  Try Files: ";
+                logger(STDOUT_FILENO, DEBUG, "  Try Files: ");
                 std::vector<std::string> tryFiles = it->second[i]->getTryFiles();
                 for (size_t j = 0; j < tryFiles.size(); j++) {
-                    std::cout << tryFiles[j];
+                    logger(STDOUT_FILENO, DEBUG, tryFiles[j]);
                     if (j < tryFiles.size() - 1)
-                        std::cout << ", ";
+                        logger(STDOUT_FILENO, DEBUG, ", ");
                 }
-                std::cout << std::endl;
             }
-            std::cout << "  CGI Enabled: " << (it->second[i]->getCgiEnabled() ? "on" : "off") << std::endl;
+            logger(STDOUT_FILENO, DEBUG, "  CGI Enabled: " + stringify(it->second[i]->getCgiEnabled() ? "on" : "off"));
             if (!it->second[i]->getCgi().empty()) {
-                std::cout << "  CGI: ";
+                logger(STDOUT_FILENO, DEBUG, "  CGI: ");
                 std::vector<std::pair<std::string, std::string> > cgi = it->second[i]->getCgi();
                 for (size_t j = 0; j < cgi.size(); j++) {
-                    std::cout << cgi[j].first << "->" << cgi[j].second;
+                    logger(STDOUT_FILENO, DEBUG, cgi[j].first + "->" + cgi[j].second);
                     if (j < cgi.size() - 1)
-                        std::cout << ", ";
+                        logger(STDOUT_FILENO, DEBUG, ", ");
                 }
-                std::cout << std::endl;
             }
             if (!it->second[i]->getCgiIncludes().empty()) {
-                std::cout << "  CGI Includes: ";
+                logger(STDOUT_FILENO, DEBUG, "  CGI Includes: ");
                 std::vector<std::string> cgiIncludes = it->second[i]->getCgiIncludes();
                 for (size_t j = 0; j < cgiIncludes.size(); j++) {
-                    std::cout << cgiIncludes[j];
+                    logger(STDOUT_FILENO, DEBUG, cgiIncludes[j]);
                     if (j < cgiIncludes.size() - 1)
-                        std::cout << ", ";
+                        logger(STDOUT_FILENO, DEBUG, ", ");
                 }
-                std::cout << std::endl;
             }
             if (!it->second[i]->getFastcgiPass().empty())
-                std::cout << "  FastCGI Pass: " << it->second[i]->getFastcgiPass() << std::endl;
+                logger(STDOUT_FILENO, DEBUG, "  FastCGI Pass: " + it->second[i]->getFastcgiPass());
             if (!it->second[i]->getFastcgiIndex().empty())
-                std::cout << "  FastCGI Index: " << it->second[i]->getFastcgiIndex() << std::endl;
+                logger(STDOUT_FILENO, DEBUG, "  FastCGI Index: " + it->second[i]->getFastcgiIndex());
             if (!it->second[i]->getFastcgiParams().empty()) {
-                std::cout << "  FastCGI Params: ";
+                logger(STDOUT_FILENO, DEBUG, "  FastCGI Params: ");
                 std::vector<std::pair<std::string, std::string> > fastcgiParams = it->second[i]->getFastcgiParams();
                 for (size_t j = 0; j < fastcgiParams.size(); j++) {
-                    std::cout << fastcgiParams[j].first << "=" << fastcgiParams[j].second;
+                    logger(STDOUT_FILENO, DEBUG, fastcgiParams[j].first + "=" + fastcgiParams[j].second);
                     if (j < fastcgiParams.size() - 1)
-                        std::cout << ", ";
+                        logger(STDOUT_FILENO, DEBUG, ", ");
                 }
-                std::cout << std::endl;
             }
             if (it->second[i]->getMaxBodySize() > 0)
-                std::cout << "  Max Body Size: " << it->second[i]->getMaxBodySize() << " bytes" << std::endl;
+                logger(STDOUT_FILENO, DEBUG, "  Max Body Size: " + stringify(it->second[i]->getMaxBodySize()) + " bytes");
             if (!it->second[i]->getMethods().empty()) {
-                std::cout << "  Methods: ";
+                logger(STDOUT_FILENO, DEBUG, "  Methods: ");
                 std::vector<std::string> methods = it->second[i]->getMethods();
                 for (size_t j = 0; j < methods.size(); j++) {
-                    std::cout << methods[j];
+                    logger(STDOUT_FILENO, DEBUG, methods[j]);
                     if (j < methods.size() - 1)
-                        std::cout << ", ";
+                        logger(STDOUT_FILENO, DEBUG, ", ");
                 }
-                std::cout << std::endl;
             }
-			if (!it->second[i]->getUploadPath().empty())
-    			std::cout << "  Upload Path: " << it->second[i]->getUploadPath() << std::endl;
+            if (!it->second[i]->getUploadPath().empty())
+                logger(STDOUT_FILENO, DEBUG, "  Upload Path: " + it->second[i]->getUploadPath());
             if (!it->second[i]->getRoot().empty())
-                std::cout << "  Root: " << it->second[i]->getRoot() << std::endl;
+                logger(STDOUT_FILENO, DEBUG, "  Root: " + it->second[i]->getRoot());
             locCount++;
         }
     }
-    std::cout << std::endl;
 }

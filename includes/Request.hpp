@@ -1,12 +1,12 @@
 #ifndef REQUEST_HPP
 #define REQUEST_HPP
 
-# include <string>
-# include <iostream>
-# include <sstream>
-# include <vector>
-# include "Webserv.hpp"
-# include "ServerConfig.hpp"
+#include <string>
+#include <iostream>
+#include <sstream>
+#include <vector>
+#include "Webserv.hpp"
+#include "ServerConfig.hpp"
 
 class ServerConfig;
 

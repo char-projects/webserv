@@ -43,29 +43,21 @@
 	> curl -v --resolve server42.com:8080:127.0.0.1 http://server42.com:8080/
 
 ### Bonus Features
-- [❌] "Support cookies and session management."
+- [✅] "Support cookies and session management."
 - [✅] "Handle multiple CGI types."
-
 
 ### Bonus Features
 - Mode debug
 	> make debug-off / make debug-on
 
 ## ERRORS
-- [ ] Crash con archivos muy grandes
 
 ## TODO
-- [ ] Disable DEGUB logger from the Makefile
 - [ ] Comprobar permisos a la hora de subir archivos
 - [ ] Cuando hay error al parsear el default.com continue; ????
-- [ ] Problems al usar HTTPS://
 - [ ] Comprobar que no se puede usar DELETE en carpetas que no tienen permitido el método
 - [ ] Limpiar estructura addr antes de configurar
-- [ ] HTTP/1.1 keep-alive OJO!!!! leer cabecera request
-- [ ] BUFFER_SIZE no debe ser un tamaño fijo??, leer cabecera request
 - [ ] Hacer la parte "NULL" de excepciones del select (select(max_fd + 1, &read_fds, &write_fds, NULL, &timeout);)
-- [ ] Simplificar ResponseHeader::setContent(size_t status_code)
-- [ ] Formalizar la forma en que se muestran mensajes de error, etc ...
 - [ ] Comprobar
 	- curl --resolve server42.com:80:127.0.0.1 http://server42.com/
 	- curl -X POST -H "Content-Type: plain/text" --data "BODY IS HERE write something shorter or longer than body limit"
