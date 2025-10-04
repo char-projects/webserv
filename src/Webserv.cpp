@@ -8,6 +8,13 @@ Webserv::Webserv(ConfigParsing &config) : config(config) {
 	this->fds_sockets = std::map<int, ServerConfig*>();
 	this->fds_clients = std::vector<int>();
 	this->clients_state = std::map<int, ClientState>();
+
+    this->session_cookie_name = "SESSIONID";
+    this->session_timeout = 1800; // 30 minutos en segundos
+
+    // Limpieza inicial de sesiones expiradas
+    cleanupExpiredSessions();
+
 }
 
 Webserv::~Webserv() {
@@ -179,27 +186,37 @@ void Webserv::clientRequest(int client_fd, bool &close_connection) {
 }
 
 void Webserv::clientResponse(int client_fd, bool &close_connection) {
-	const char* response_data = clients_state[client_fd].response->getResponse();
-	size_t response_size = clients_state[client_fd].response->getSize();
-	ssize_t bytes_sent = send(client_fd, response_data, response_size, 0);
+    const char* response_data = clients_state[client_fd].response->getResponse();
+    size_t response_size = clients_state[client_fd].response->getSize();
+    ssize_t bytes_sent = send(client_fd, response_data, response_size, 0);
 
-	if (bytes_sent < 0) {
-		logger(STDOUT_FILENO, ERROR, "Send failed for client " + stringify(client_fd) + ", errno: " + stringify(errno));
-		close_connection = true;
-	} else if ((size_t)bytes_sent < response_size) {
-		logger(STDOUT_FILENO, WARNING, "Partial send: " + stringify(bytes_sent) + "/" + stringify(response_size) + " bytes");
-		close_connection = true;
-	} else {
-		clients_state[client_fd].ready_to_write = false;
-		if (clients_state[client_fd].response->getStatusCode() < 400) {
-			clients_state[client_fd].ready_to_read = true;
-			clients_state[client_fd].ready_to_write = false;
-			clients_state[client_fd].last_activity = time(NULL);
-			clients_state[client_fd].request->reset();
-		} else {
-			close_connection = true;
-		}
-	}
+    if (bytes_sent < 0) {
+        logger(STDOUT_FILENO, ERROR, "Send failed for client " + stringify(client_fd) + ", errno: " + stringify(errno));
+        close_connection = true;
+    } else if ((size_t)bytes_sent < response_size) {
+        logger(STDOUT_FILENO, WARNING, "Partial send: " + stringify(bytes_sent) + "/" + stringify(response_size) + " bytes");
+        close_connection = true;
+    } else {
+        clients_state[client_fd].ready_to_write = false;
+
+        // Verificar header Connection para decidir si cerrar o mantener
+        std::map<std::string, std::string> headers = clients_state[client_fd].request->getHeaders();
+        std::string connection_header = headers["Connection"];
+
+        bool should_keep_alive = (connection_header == "keep-alive" ||
+                                 (connection_header.empty() && clients_state[client_fd].response->getStatusCode() < 400));
+
+        if (should_keep_alive) {
+            clients_state[client_fd].ready_to_read = true;
+            clients_state[client_fd].ready_to_write = false;
+            clients_state[client_fd].last_activity = time(NULL);
+            clients_state[client_fd].request->reset();
+            logger(STDOUT_FILENO, DEBUG, "Keeping connection alive for client " + stringify(client_fd));
+        } else {
+            close_connection = true;
+            logger(STDOUT_FILENO, DEBUG, "Closing connection for client " + stringify(client_fd));
+        }
+    }
 }
 
 void Webserv::start() {
@@ -243,7 +260,7 @@ void Webserv::start() {
 			}
 
 			if (!close_connection && clients_state[client_fd].ready_to_write && FD_ISSET(client_fd, &write_fds)) {
-				logger(STDOUT_FILENO, INFO, "Writing to client " + stringify(client_fd));
+				logger(STDOUT_FILENO, DEBUG, "Writing to client " + stringify(client_fd));
 				clientResponse(client_fd, close_connection);
 			}
 
@@ -286,4 +303,98 @@ void Webserv::stop() {
 
 	fds_clients.clear();
 	clients_state.clear();
+}
+
+
+std::string Webserv::generateSessionId() {
+    std::string chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    std::string session_id;
+    srand(time(NULL));
+
+    for (int i = 0; i < 32; ++i) {
+        session_id += chars[rand() % chars.length()];
+    }
+    return session_id;
+}
+
+Session* Webserv::getSession(const std::string& session_id) {
+    if (session_id.empty()) return NULL;
+
+    std::map<std::string, Session>::iterator it = sessions.find(session_id);
+    if (it != sessions.end()) {
+        // Verificar si la sesión ha expirado
+        if (time(NULL) - it->second.last_activity > session_timeout) {
+            sessions.erase(it);
+            return NULL;
+        }
+        it->second.last_activity = time(NULL);
+        return &(it->second);
+    }
+    return NULL;
+}
+
+Session* Webserv::createSession() {
+    std::string session_id = generateSessionId();
+    Session new_session;
+    new_session.id = session_id;
+    new_session.last_activity = time(NULL);
+    new_session.logged_in = false;
+
+    sessions[session_id] = new_session;
+    return &sessions[session_id];
+}
+
+bool Webserv::isValidSession(const std::string& session_id) {
+    return getSession(session_id) != NULL;
+}
+
+void Webserv::cleanupExpiredSessions() {
+    time_t current_time = time(NULL);
+    std::map<std::string, Session>::iterator it = sessions.begin();
+
+    while (it != sessions.end()) {
+        if (current_time - it->second.last_activity > session_timeout) {
+            sessions.erase(it++);
+        } else {
+            ++it;
+        }
+    }
+}
+
+std::string Webserv::parseCookies(const std::map<std::string, std::string>& headers) {
+    std::map<std::string, std::string>::const_iterator it = headers.find("Cookie");
+    if (it != headers.end()) {
+        return it->second;
+    }
+    return "";
+}
+
+std::map<std::string, std::string> Webserv::parseCookieHeader(const std::string& cookie_header) {
+    std::map<std::string, std::string> cookies;
+    std::istringstream stream(cookie_header);
+    std::string pair;
+
+    while (std::getline(stream, pair, ';')) {
+        size_t pos = pair.find('=');
+        if (pos != std::string::npos) {
+            std::string name = trim(pair.substr(0, pos));
+            std::string value = trim(pair.substr(pos + 1));
+            cookies[name] = value;
+        }
+    }
+    return cookies;
+}
+
+std::string Webserv::createCookieHeader(const std::string& name, const std::string& value,
+                                      time_t max_age, const std::string& path,
+                                      const std::string& domain) {
+    std::stringstream cookie;
+    cookie << name << "=" << value;
+    cookie << "; Path=" << path;
+    if (!domain.empty()) {
+        cookie << "; Domain=" << domain;
+    }
+    cookie << "; Max-Age=" << max_age;
+    cookie << "; HttpOnly"; // Seguridad básica
+    return cookie.str();
 }

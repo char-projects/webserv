@@ -36,7 +36,8 @@ class Response {
 		const char*			getResponse();
 		size_t				getSize();
 		size_t				getStatusCode() const;
-
+       void setSessionCookie(const std::string& session_id);
+	   		void				reset();
 	private:
 		std::string							send_response;
 		std::string							send_header;
@@ -50,6 +51,8 @@ class Response {
 		ResponseHeader*						response_header;
  		const std::vector<LocationConfig*>&	locations;
 
+		std::map<std::string, std::string>	cookies;
+
 		Response();
 		Response(const Response &obj);
 		Response &operator=(const Response &obj);
@@ -61,10 +64,20 @@ class Response {
 		void		 		ListDirectory(const std::string& path, const std::string& uri);
 		const std::string	getPathStatusCode();
 		LocationConfig*		findLocation(const std::string& path);
-		void				reset();
+
 		bool				shouldExecuteAsCGI(const std::string &path);
 		void				executeCGI(const std::string &path);
 		std::string			resolveFilePath(const std::string &uri);
+
+
+        void setCookie(const std::string& name, const std::string& value,
+                      time_t max_age = 3600, const std::string& path = "/");
+        void removeCookie(const std::string& name);
+        std::string buildCookieHeaders();
+
+        // Métodos para sesiones
+
+
 };
 
 #endif

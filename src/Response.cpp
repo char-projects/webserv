@@ -62,11 +62,20 @@ const char* Response::getResponse() {
 	} else {
 		readContent(getPathStatusCode());
 	}
-
+ std::string cookie_headers = buildCookieHeaders();
 	response_header->setContentLength(send_body.size());
 	response_header->setContentType(request.getPath());
 	send_header = response_header->getHeader(status_code);
 	send_response.clear();
+
+if (!cookie_headers.empty()) {
+        size_t pos = send_header.find("\r\n\r\n");
+        if (pos != std::string::npos) {
+            send_header.insert(pos, "\r\n" + cookie_headers);
+        }
+    }
+
+
 	send_response.append(send_header);
 	if (request.getMethod() != "HEAD")
 		send_response.append(send_body);
@@ -709,7 +718,10 @@ void Response::executeCGI(const std::string &path) {
 	}
 
 	std::string cgiHeaders = cgi.parseHeaders(send_body);
-
+    std::string session_id = request.getSessionId();
+    if (!session_id.empty()) {
+        cgiEnv["HTTP_SESSION_ID"] = session_id;
+    }
 	if (!cgiHeaders.empty()) {
 
 		if (cgiHeaders.find("Status: ") != std::string::npos) {
@@ -781,4 +793,38 @@ std::string Response::resolveFilePath(const std::string &uri) {
 
     logger(STDOUT_FILENO, DEBUG, "Resolved file path: " + filePath + " for URI: " + uri);
     return filePath;
+}
+
+void Response::setCookie(const std::string& name, const std::string& value,
+                        time_t max_age, const std::string& path) {
+    std::string domain = config.getHost(); // Usar el host del servidor
+    if (domain.empty()) {
+        domain = "localhost"; // Fallback
+    }
+
+    std::stringstream cookie;
+    cookie << name << "=" << value;
+    cookie << "; Path=" << path;
+    cookie << "; Domain=" << domain;
+    cookie << "; Max-Age=" << max_age;
+    cookie << "; HttpOnly";
+    cookies[name] = cookie.str();
+}
+
+void Response::removeCookie(const std::string& name) {
+    // Para eliminar una cookie, establecemos max_age = 0
+    setCookie(name, "", 0, "/");
+}
+
+void Response::setSessionCookie(const std::string& session_id) {
+    setCookie("SESSIONID", session_id, 1800, "/"); // 30 minutos
+}
+
+std::string Response::buildCookieHeaders() {
+    std::string cookie_headers;
+    for (std::map<std::string, std::string>::const_iterator it = cookies.begin();
+         it != cookies.end(); ++it) {
+        cookie_headers += "Set-Cookie: " + it->second + "\r\n";
+    }
+    return cookie_headers;
 }

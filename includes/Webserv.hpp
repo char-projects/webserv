@@ -33,6 +33,14 @@ class Request;
 class Response;
 class ConfigParsing;
 
+struct Session {
+	std::string id;
+	std::map<std::string, std::string> data;
+	time_t last_activity;
+	std::string username;
+	bool logged_in;
+};
+
 struct ClientState {
 	bool			ready_to_read;
 	bool			ready_to_write;
@@ -45,6 +53,8 @@ struct ClientState {
 	size_t			expected_body_size;
 	size_t			total_bytes_received;
 };
+
+
 
 class Webserv {
 
@@ -65,6 +75,11 @@ class Webserv {
 		std::vector<int>				clients_served;
 		static Webserv*					signal_instance;
 
+		std::map<std::string, Session>	sessions;
+		std::string						session_cookie_name;
+		time_t							session_timeout;
+
+
 		Webserv();
 		Webserv(const Webserv &obj);
 		Webserv &operator=(const Webserv &obj);
@@ -73,6 +88,19 @@ class Webserv {
 		void	handleConnections(fd_set &read_fds);
 		void	clientRequest(int client_fd, bool &close_connection);
 		void	clientResponse(int client_fd, bool &close_connection);
+
+        std::string generateSessionId();
+        Session* getSession(const std::string& session_id);
+        Session* createSession();
+        void cleanupExpiredSessions();
+        bool isValidSession(const std::string& session_id);
+
+        // Métodos para cookies
+        std::string parseCookies(const std::map<std::string, std::string>& headers);
+        std::map<std::string, std::string> parseCookieHeader(const std::string& cookie_header);
+		std::string createCookieHeader(const std::string& name, const std::string& value,
+                                      time_t max_age, const std::string& path,
+                                      const std::string& domain);
 
 		static void setSignalInstance(Webserv* instance) {
 			signal_instance = instance;

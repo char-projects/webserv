@@ -273,6 +273,8 @@ void Request::parseRecvData() {
 		body = decodeChunked(body_content);
 	else
 		body = body_content;
+
+	parseCookies();
 }
 
 void Request::setRecvData(const std::string& src_recv_data, size_t bytes_read) {
@@ -586,4 +588,40 @@ void Request::reset() {
 	headers_parsed = false;
 	content_length = 0;
 	body_bytes_received = 0;
+}
+
+void Request::parseCookies() {
+    cookies.clear();
+
+    std::map<std::string, std::string>::const_iterator it = headers.find("Cookie");
+    if (it != headers.end()) {
+        std::string cookie_header = it->second;
+        std::istringstream stream(cookie_header);
+        std::string pair;
+
+        while (std::getline(stream, pair, ';')) {
+            size_t pos = pair.find('=');
+            if (pos != std::string::npos) {
+                std::string name = trim(pair.substr(0, pos));
+                std::string value = trim(pair.substr(pos + 1));
+                cookies[name] = value;
+            }
+        }
+    }
+}
+
+std::map<std::string, std::string> Request::getCookies() const {
+    return cookies;
+}
+
+std::string Request::getCookie(const std::string& name) const {
+    std::map<std::string, std::string>::const_iterator it = cookies.find(name);
+    if (it != cookies.end()) {
+        return it->second;
+    }
+    return "";
+}
+
+std::string Request::getSessionId() const {
+    return getCookie("SESSIONID");
 }

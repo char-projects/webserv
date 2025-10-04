@@ -34,6 +34,8 @@ class Request {
 		std::string boundary;
 		std::map<std::string, std::string> uploadedFiles;
 
+		std::map<std::string, std::string> cookies;
+
 	public:
 		Request(int client_fd, const ServerConfig& config);
 		Request(const Request &other);
@@ -77,6 +79,13 @@ class Request {
         bool areHeadersComplete() const;
         void parseHeaders();
         size_t getRemainingBodySize() const;
+
+        std::map<std::string, std::string> getCookies() const;
+        void parseCookies();
+        std::string getCookie(const std::string& name) const;
+
+        // Métodos para sesiones
+        std::string getSessionId() const;
 
 };
 

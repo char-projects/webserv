@@ -4,7 +4,9 @@
 
 ### Program & Execution
 - [✅] Executable should be executed as: ./webserv [configuration file]
+	> ./webserv configs/test.invalid
 - [✅] The HTTP 1.0 is suggested as a reference point, but not enforced.
+	>
 - [✅] Your program must use a configuration file, provided as an argument on the command line, or available in a default path.
 - [✅] You cannot execve another web server.
 - [✅] Your server must remain non-blocking at all times and properly handle client disconnections when necessary.
@@ -16,7 +18,7 @@
 - [✅] Your server must be compatible with standard web browsers of your choice.
 - [✅] Your HTTP response status codes must be accurate.
 - [✅] Your server must have default error pages if none are provided.
-- [❌] You can’t use fork for anything other than CGI (like PHP, or Python, and so forth).
+- [✅] You can’t use fork for anything other than CGI (like PHP, or Python, and so forth).
 - [✅] You must be able to serve a fully static website.
 - [✅] Clients must be able to upload files.
 - [✅] You need at least the GET, POST, and DELETE methods.
@@ -31,15 +33,23 @@
 - [✅] Specify rules/configurations on a URL/route
 - [✅] List of accepted HTTP methods for the route.
 - [✅] HTTP redirection.
+	> http://localhost:8080/download/
 - [✅] Directory mapping (root directive).
 - [✅] Enabling or disabling directory listing.
 - [✅] Default file to serve when the resource is a directory.
 - [✅] Uploading files from the clients (with storage location).
-- [❌] Execution of CGI based on file extension (php, python, etc.).
+- [✅] Execution of CGI based on file extension (php, python, etc.).
+- [✅] a server name for a website if you plan to implement virtual hosts
+	> curl -v --resolve server42.com:8080:127.0.0.1 http://server42.com:8080/
 
 ### Bonus Features
 - [❌] "Support cookies and session management."
-- [❌] "Handle multiple CGI types."
+- [✅] "Handle multiple CGI types."
+
+
+### Bonus Features
+- Mode debug
+	> make debug-off / make debug-on
 
 ## ERRORS
 - [ ] Crash con archivos muy grandes

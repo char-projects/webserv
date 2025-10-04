@@ -31,8 +31,8 @@ bool Cgi::execute() {
     int outPipe[2];
     pid_t pid;
 
-    logger(STDOUT_FILENO, INFO, "Executing CGI: " + scriptPath);
-    logger(STDOUT_FILENO, INFO, "Interpreter: " + getInterpreter());
+    logger(STDOUT_FILENO, DEBUG, "Executing CGI: " + scriptPath);
+    logger(STDOUT_FILENO, DEBUG, "Interpreter: " + getInterpreter());
 
     if (pipe(inPipe) == -1 || pipe(outPipe) == -1) {
         logger(STDOUT_FILENO, ERROR, "Failed to create pipes for CGI");
