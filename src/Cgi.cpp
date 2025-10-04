@@ -25,6 +25,9 @@ bool Cgi::execute() {
     int outPipe[2];
     pid_t pid;
 
+    logger(STDOUT_FILENO, INFO, "Executing CGI: " + scriptPath);
+    logger(STDOUT_FILENO, INFO, "Interpreter: " + getInterpreter());
+
     if (pipe(inPipe) == -1 || pipe(outPipe) == -1) {
         logger(STDOUT_FILENO, ERROR, "Failed to create pipes for CGI");
         return false;
@@ -44,12 +47,17 @@ bool Cgi::execute() {
         close(outPipe[1]);
 
         // Change to script directory
-        size_t lastSlash = scriptPath.rfind('/');
-        if (lastSlash != std::string::npos) {
-            std::string dir = scriptPath.substr(0, lastSlash);
-            if (chdir(dir.c_str()) != 0)
-                logger(STDOUT_FILENO, ERROR, "Failed to change directory for CGI: " + dir);
-        }
+		size_t lastSlash = scriptPath.rfind('/');
+		if (lastSlash != std::string::npos) {
+			std::string dir = scriptPath.substr(0, lastSlash);
+			std::string scriptName = scriptPath.substr(lastSlash + 1);
+
+			if (chdir(dir.c_str()) != 0) {
+				logger(STDOUT_FILENO, ERROR, "Failed to change directory for CGI: " + dir);
+			} else {
+				scriptPath = scriptName;
+			}
+		}
 
         std::vector<char*> envp;
         for (std::map<std::string, std::string>::const_iterator it = env.begin(); it != env.end(); ++it) {
@@ -61,7 +69,7 @@ bool Cgi::execute() {
         // Get interpreter and set up arguments
         std::string interpreter = getInterpreter();
         std::vector<char*> argv;
-        
+
         if (!interpreter.empty()) {
             argv.push_back(strdup(interpreter.c_str()));
             argv.push_back(strdup(scriptPath.c_str()));
@@ -71,18 +79,21 @@ bool Cgi::execute() {
         argv.push_back(NULL);
 
         if (!interpreter.empty()) {
-            if (execve(("/usr/bin/" + interpreter).c_str(), argv.data(), envp.data()) == -1) {
-                if (execve(("/bin/" + interpreter).c_str(), argv.data(), envp.data()) == -1) {
-                    logger(STDOUT_FILENO, ERROR, "Failed to execute CGI interpreter: " + interpreter);
-                    exit(1);
-                }
-            }
+			if (execvp(interpreter.c_str(), argv.data()) == -1) {
+				logger(STDOUT_FILENO, ERROR, "Failed to execute CGI interpreter: " + interpreter);
+				exit(1);
+			}
         } else {
             if (execve(scriptPath.c_str(), argv.data(), envp.data()) == -1) {
                 logger(STDOUT_FILENO, ERROR, "Failed to execute CGI script: " + scriptPath);
                 exit(1);
             }
         }
+		for (size_t i = 0; i < envp.size(); ++i)
+			free(envp[i]);
+		for (size_t i = 0; i < argv.size(); ++i)
+			free(argv[i]);
+		exit(1);
     } else { // Parent process
         close(inPipe[0]);
         close(outPipe[1]);
@@ -121,17 +132,18 @@ int Cgi::getStatus() const {
 }
 
 int Cgi::checkExtension() {
-    size_t dotPos = scriptPath.rfind('.');
-    if (dotPos == std::string::npos)
-        return -1; // No extension found
-    std::string ext = scriptPath.substr(dotPos);
-    if (ext == ".php")
-        return (std::system("php --version > /dev/null 2>&1") == 0) ? 0 : -1;
-    else if (ext == ".py")
-        return (std::system("python3 --version > /dev/null 2>&1") == 0) ? 0 : -1;
-    else if (ext == ".sh")
-        return (std::system("bash --version > /dev/null 2>&1") == 0) ? 0 : -1;
-    return -1; // Unsupported extension
+	size_t dotPos = scriptPath.rfind('.');
+	if (dotPos == std::string::npos)
+		return -1;
+
+	std::string ext = scriptPath.substr(dotPos);
+
+	std::string interpreter = getInterpreter();
+	if (interpreter.empty())
+		return -1;
+
+	std::string command = "which " + interpreter + " > /dev/null 2>&1";
+	return (std::system(command.c_str()) == 0) ? 0 : -1;
 }
 
 void Cgi::handleCookies(std::map<std::string, std::string> &headers) {
@@ -150,11 +162,11 @@ void Cgi::setPostData(const std::string &data) {
     postData = data;
 }
 
-void Cgi::setupEnvironment(const std::string &method, const std::string &uri, 
+void Cgi::setupEnvironment(const std::string &method, const std::string &uri,
                          const std::string &queryString, const std::string &contentType,
-                         size_t contentLength, const std::string &serverName, 
+                         size_t contentLength, const std::string &serverName,
                          const std::string &serverPort, const std::map<std::string, std::string> &headers) {
-    
+
     // Basic CGI environment variables
     env["REQUEST_METHOD"] = method;
     env["REQUEST_URI"] = uri;
@@ -166,29 +178,31 @@ void Cgi::setupEnvironment(const std::string &method, const std::string &uri,
     env["SERVER_SOFTWARE"] = "webserv/1.0";
     env["GATEWAY_INTERFACE"] = "CGI/1.1";
     env["SERVER_PROTOCOL"] = "HTTP/1.1";
-    
-    // Script information
+ 	env["SCRIPT_FILENAME"] = scriptPath;
+
+    size_t scriptNamePos = uri.rfind('/');
+    if (scriptNamePos != std::string::npos)
+        env["SCRIPT_NAME"] = uri.substr(scriptNamePos);
+    else
+        env["SCRIPT_NAME"] = uri;
+
     size_t lastSlash = scriptPath.rfind('/');
-    if (lastSlash != std::string::npos) {
-        env["SCRIPT_NAME"] = scriptPath.substr(lastSlash);
-        env["SCRIPT_FILENAME"] = scriptPath;
+    if (lastSlash != std::string::npos)
         env["DOCUMENT_ROOT"] = scriptPath.substr(0, lastSlash);
-    } else {
-        env["SCRIPT_NAME"] = scriptPath;
-        env["SCRIPT_FILENAME"] = scriptPath;
+    else
         env["DOCUMENT_ROOT"] = ".";
-    }
-    
+
     // Path info (part of URI after script name)
-    size_t scriptPos = uri.find(env["SCRIPT_NAME"]);
+    std::string scriptName = env["SCRIPT_NAME"];
+    size_t scriptPos = uri.find(scriptName);
     if (scriptPos != std::string::npos) {
-        std::string pathInfo = uri.substr(scriptPos + env["SCRIPT_NAME"].length());
-        if (!pathInfo.empty() && pathInfo[0] == '/') {
+        std::string pathInfo = uri.substr(scriptPos + scriptName.length());
+        if (!pathInfo.empty()) {
             env["PATH_INFO"] = pathInfo;
             env["PATH_TRANSLATED"] = env["DOCUMENT_ROOT"] + pathInfo;
         }
     }
-    
+
     // HTTP headers as environment variables
     for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it) {
         std::string headerName = "HTTP_" + it->first;
@@ -201,6 +215,11 @@ void Cgi::setupEnvironment(const std::string &method, const std::string &uri,
         }
         env[headerName] = it->second;
     }
+
+    logger(STDOUT_FILENO, INFO, "CGI Environment:");
+    logger(STDOUT_FILENO, INFO, "  SCRIPT_FILENAME: " + env["SCRIPT_FILENAME"]);
+    logger(STDOUT_FILENO, INFO, "  SCRIPT_NAME: " + env["SCRIPT_NAME"]);
+    logger(STDOUT_FILENO, INFO, "  DOCUMENT_ROOT: " + env["DOCUMENT_ROOT"]);
 }
 
 std::string Cgi::getInterpreter() const {

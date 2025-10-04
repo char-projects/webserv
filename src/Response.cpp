@@ -103,31 +103,31 @@ const std::string Response::getPathStatusCode() {
 			error_page_path = "";
 			break;
 		case 400:
-			error_page_path = "src/error_pages/400.html";
+			error_page_path = ERROR_400_HTML;
 			break;
 		case 403:
 			error_page_path = ERROR_403_HTML;
 			break;
 		case 404:
-			error_page_path = "src/error_pages/404.html";
+			error_page_path = ERROR_404_HTML;
 			break;
 		case 405:
-			error_page_path = "src/error_pages/405.html";
+			error_page_path = ERROR_405_HTML;
 			break;
 		case 413:
-			error_page_path = "src/error_pages/413.html";
+			error_page_path = ERROR_413_HTML;
 			break;
 		case 500:
 			error_page_path = ERROR_500_HTML;
 			break;
 		case 502:
-			error_page_path = "src/error_pages/502.html";
+			error_page_path = ERROR_502_HTML;
 			break;
 		case 503:
-			error_page_path = "src/error_pages/503.html";
+			error_page_path = ERROR_503_HTML;
 			break;
 		case 504:
-			error_page_path = "src/error_pages/504.html";
+			error_page_path = ERROR_504_HTML;
 			break;
 		case 520:
 			error_page_path = "";
@@ -600,27 +600,27 @@ void Response::reset() {
 
 
 bool Response::shouldExecuteAsCGI(const std::string &path) {
+    size_t dotPos = path.rfind('.');
+    if (dotPos == std::string::npos)
+        return false;
+    std::string ext = path.substr(dotPos);
+    if (ext != ".php" && ext != ".py" && ext != ".sh")
+        return false;
 
-	size_t dotPos = path.rfind('.');
-	if (dotPos == std::string::npos)
-		return false;
-	std::string ext = path.substr(dotPos);
-	if (ext != ".php" && ext != ".py" && ext != ".sh")
-		return false;
+    LocationConfig* loc = findLocation(request.getUri());
+    if (loc && loc->getCgiEnabled()) {
+        std::vector<std::pair<std::string, std::string> > cgiConfig = loc->getCgi();
+        for (size_t i = 0; i < cgiConfig.size(); ++i) {
+            if (cgiConfig[i].first == ext)
+                return true;
+        }
+    }
 
-	LocationConfig* loc = findLocation(request.getUri());
-	if (loc && loc->getCgiEnabled()) {
+    // También permitir CGI si está en /cgi-bin/ O si la ubicación tiene CGI habilitado
+    if (request.getUri().find("/cgi-bin/") == 0 || (loc && loc->getCgiEnabled()))
+        return true;
 
-		std::vector<std::pair<std::string, std::string> > cgiConfig = loc->getCgi();
-		for (size_t i = 0; i < cgiConfig.size(); ++i) {
-			if (cgiConfig[i].first == ext)
-				return true;
-		}
-	}
-
-	if (request.getUri().find("/cgi-bin/") == 0)
-		return true;
-	return false;
+    return false;
 }
 
 void Response::executeCGI(const std::string &path) {
@@ -664,8 +664,13 @@ void Response::executeCGI(const std::string &path) {
 
 	if (!cgi.execute()) {
 		status_code = 500;
-		send_body = "CGI execution failed";
-		return ;
+		std::string errorMsg = "CGI execution failed for: " + path;
+		if (cgi.getStatus() != 0) {
+			errorMsg += " (Exit status: " + stringify(cgi.getStatus()) + ")";
+		}
+		logger(STDOUT_FILENO, ERROR, errorMsg);
+		send_body = errorMsg;
+		return;
 	}
 
 	std::string cgiHeaders = cgi.parseHeaders(send_body);
