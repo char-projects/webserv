@@ -1,5 +1,11 @@
 #include "../includes/Cgi.hpp"
 #include "../includes/utils.hpp"
+#include <unistd.h>
+#include <sys/wait.h>
+#include <signal.h>
+#include <ctime>
+#include <cerrno>
+#include <cstring>
 
 Cgi::Cgi(const std::string &scriptPath, const std::map<std::string, std::string> &env)
     : scriptPath(scriptPath), env(env), output(""), postData(""), status(0) {}
@@ -47,8 +53,10 @@ bool Cgi::execute() {
         size_t lastSlash = scriptPath.rfind('/');
         if (lastSlash != std::string::npos) {
             std::string dir = scriptPath.substr(0, lastSlash);
-            if (chdir(dir.c_str()) != 0)
-                logger(STDOUT_FILENO, ERROR, "Failed to change directory for CGI: " + dir);
+            if (chdir(dir.c_str()) != 0) {
+                logger(STDOUT_FILENO, ERROR, "Failed to change directory for CGI: " + dir + " - " + strerror(errno));
+                exit(1);
+            }
         }
 
         std::vector<char*> envp;
@@ -58,12 +66,29 @@ bool Cgi::execute() {
         }
         envp.push_back(NULL);
 
-        // Get interpreter and set up arguments
         std::string interpreter = getInterpreter();
         std::vector<char*> argv;
         
         if (!interpreter.empty()) {
-            argv.push_back(strdup(interpreter.c_str()));
+            std::string interpreterPath;
+            std::vector<std::string> paths;
+            paths.push_back("/usr/bin/" + interpreter);
+            paths.push_back("/bin/" + interpreter);
+            paths.push_back("/usr/local/bin/" + interpreter);
+            
+            for (size_t i = 0; i < paths.size(); ++i) {
+                if (access(paths[i].c_str(), X_OK) == 0) {
+                    interpreterPath = paths[i];
+                    break;
+                }
+            }
+            
+            if (interpreterPath.empty()) {
+                logger(STDOUT_FILENO, ERROR, "CGI interpreter not found: " + interpreter);
+                exit(1);
+            }
+            
+            argv.push_back(strdup(interpreterPath.c_str()));
             argv.push_back(strdup(scriptPath.c_str()));
         } else {
             argv.push_back(strdup(scriptPath.c_str()));
@@ -71,22 +96,19 @@ bool Cgi::execute() {
         argv.push_back(NULL);
 
         if (!interpreter.empty()) {
-            if (execve(("/usr/bin/" + interpreter).c_str(), argv.data(), envp.data()) == -1) {
-                if (execve(("/bin/" + interpreter).c_str(), argv.data(), envp.data()) == -1) {
-                    logger(STDOUT_FILENO, ERROR, "Failed to execute CGI interpreter: " + interpreter);
-                    exit(1);
-                }
+            if (execve(argv[0], argv.data(), envp.data()) == -1) {
+                logger(STDOUT_FILENO, ERROR, "Failed to execute CGI interpreter: " + std::string(argv[0]) + " - " + strerror(errno));
+                exit(1);
             }
         } else {
             if (execve(scriptPath.c_str(), argv.data(), envp.data()) == -1) {
-                logger(STDOUT_FILENO, ERROR, "Failed to execute CGI script: " + scriptPath);
+                logger(STDOUT_FILENO, ERROR, "Failed to execute CGI script: " + scriptPath + " - " + strerror(errno));
                 exit(1);
             }
         }
     } else { // Parent process
         close(inPipe[0]);
         close(outPipe[1]);
-        // Write POST data to CGI stdin if available
         if (!postData.empty())
             write(inPipe[1], postData.c_str(), postData.size());
         close(inPipe[1]);
@@ -100,10 +122,37 @@ bool Cgi::execute() {
         close(outPipe[0]);
 
         int wstatus;
-        waitpid(pid, &wstatus, 0);
+        pid_t result = waitpid(pid, &wstatus, WNOHANG);
+        time_t start_time = time(NULL);
+        
+        while (result == 0 && (time(NULL) - start_time) < 30) {
+            usleep(100000); // Sleep for 100ms
+            result = waitpid(pid, &wstatus, WNOHANG);
+        }
+        
+        if (result == 0) {
+            // Timeout - kill the process
+            kill(pid, SIGTERM);
+            usleep(100000);
+            kill(pid, SIGKILL);
+            waitpid(pid, &wstatus, 0);
+            logger(STDOUT_FILENO, ERROR, "CGI script timed out");
+            return false;
+        } else if (result == -1) {
+            logger(STDOUT_FILENO, ERROR, "waitpid failed: " + std::string(strerror(errno)));
+            return false;
+        }
+        
         if (WIFEXITED(wstatus)) {
             status = WEXITSTATUS(wstatus);
+            if (status != 0) {
+                logger(STDOUT_FILENO, ERROR, "CGI script exited with status: " + stringify(status));
+            }
             return status == 0;
+        } else if (WIFSIGNALED(wstatus)) {
+            int signal = WTERMSIG(wstatus);
+            logger(STDOUT_FILENO, ERROR, "CGI script terminated by signal: " + stringify(signal));
+            return false;
         } else {
             logger(STDOUT_FILENO, ERROR, "CGI script did not terminate normally");
             return false;

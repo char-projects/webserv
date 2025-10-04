@@ -1,6 +1,8 @@
 #include "../includes/Response.hpp"
 #include "../includes/Request.hpp"
 #include "../includes/utils.hpp"
+#include <unistd.h>
+#include <cstdlib>
 
 Response::Response(const int client_fd, const Request& request, const ServerConfig& config, const std::vector<LocationConfig*>& locations)
 	: client_fd(client_fd), request(request), config(config), locations(locations) {
@@ -624,8 +626,25 @@ bool Response::shouldExecuteAsCGI(const std::string &path) {
 }
 
 void Response::executeCGI(const std::string &path) {
+	// Resolve absolute path for CGI script
+	std::string absolutePath = path;
+	if (path[0] != '/') {
+		char* cwd = getcwd(NULL, 0);
+		if (cwd) {
+			absolutePath = std::string(cwd) + "/" + path;
+			free(cwd);
+		}
+	}
+	
+	// Check if CGI script exists and is executable
+	if (!pathIsFile(absolutePath)) {
+		status_code = 404;
+		send_body = "CGI script not found: " + absolutePath;
+		return;
+	}
+	
 	std::map<std::string, std::string> cgiEnv;
-	Cgi cgi(path, cgiEnv);
+	Cgi cgi(absolutePath, cgiEnv);
 
 	std::string queryString = "";
 	size_t queryPos = request.getUri().find('?');
