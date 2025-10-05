@@ -46,9 +46,17 @@
 - [✅] "Support cookies and session management."
 - [✅] "Handle multiple CGI types."
 
-### Bonus Features
+### Extra Features
 - Mode debug
 	> make debug-off / make debug-on
+- Handles virtual directories
+
+
+- Subject TEST
+	./webserv configs/subject_test.conf
+	curl -v -X GET localhost:8085
+	curl -X POST --header 'Content-Type: application/json' -d '{"thing": 45}' localhost:8085/post_body
+	./ubuntu_tester http://localhost:8085
 
 ## ERRORS
 

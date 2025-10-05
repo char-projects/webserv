@@ -358,15 +358,11 @@ void ConfigParsing::printConfig() const {
         std::vector<int> ports = servers[i]->getPorts();
         for (size_t j = 0; j < ports.size(); j++) {
             logger(STDOUT_FILENO, DEBUG, stringify(ports[j]));
-            if (j < ports.size() - 1)
-                logger(STDOUT_FILENO, DEBUG, ", ");
         }
         logger(STDOUT_FILENO, DEBUG, "  Root: " + servers[i]->getRoot());
         logger(STDOUT_FILENO, DEBUG, "  Index: ");
         for (size_t j = 0; j < servers[i]->getIndexFiles().size(); j++) {
             logger(STDOUT_FILENO, DEBUG, servers[i]->getIndexFiles()[j]);
-            if (j < servers[i]->getIndexFiles().size() - 1)
-                logger(STDOUT_FILENO, DEBUG, ", ");
         }
         logger(STDOUT_FILENO, DEBUG, "  Error Pages:");
         for (size_t j = 0; j < servers[i]->getErrorPages().size(); j++) {
@@ -380,8 +376,6 @@ void ConfigParsing::printConfig() const {
             std::vector<std::string> methods = servers[i]->getMethods();
             for (size_t j = 0; j < methods.size(); j++) {
                 logger(STDOUT_FILENO, DEBUG, methods[j]);
-                if (j < methods.size() - 1)
-                    logger(STDOUT_FILENO, DEBUG, ", ");
             }
         }
         logger(STDOUT_FILENO, DEBUG, "  Locations: ");
@@ -390,8 +384,6 @@ void ConfigParsing::printConfig() const {
             const std::vector<LocationConfig*>& locVec = locIt->second;
             for (size_t j = 0; j < locVec.size(); j++) {
                 logger(STDOUT_FILENO, DEBUG, locVec[j]->getLocationPath());
-                if (j < locVec.size() - 1)
-                    logger(STDOUT_FILENO, DEBUG, ", ");
             }
         }
     }
@@ -408,8 +400,6 @@ void ConfigParsing::printConfig() const {
                 std::vector<std::pair<std::string, std::string> > redirects = it->second[i]->getRedirects();
                 for (size_t j = 0; j < redirects.size(); j++) {
                     logger(STDOUT_FILENO, DEBUG, redirects[j].first + "->" + redirects[j].second);
-                    if (j < redirects.size() - 1)
-                        logger(STDOUT_FILENO, DEBUG, ", ");
                 }
             }
             if (!it->second[i]->getTryFiles().empty()) {
@@ -417,8 +407,6 @@ void ConfigParsing::printConfig() const {
                 std::vector<std::string> tryFiles = it->second[i]->getTryFiles();
                 for (size_t j = 0; j < tryFiles.size(); j++) {
                     logger(STDOUT_FILENO, DEBUG, tryFiles[j]);
-                    if (j < tryFiles.size() - 1)
-                        logger(STDOUT_FILENO, DEBUG, ", ");
                 }
             }
             logger(STDOUT_FILENO, DEBUG, "  CGI Enabled: " + stringify(it->second[i]->getCgiEnabled() ? "on" : "off"));
@@ -427,8 +415,6 @@ void ConfigParsing::printConfig() const {
                 std::vector<std::pair<std::string, std::string> > cgi = it->second[i]->getCgi();
                 for (size_t j = 0; j < cgi.size(); j++) {
                     logger(STDOUT_FILENO, DEBUG, cgi[j].first + "->" + cgi[j].second);
-                    if (j < cgi.size() - 1)
-                        logger(STDOUT_FILENO, DEBUG, ", ");
                 }
             }
             if (!it->second[i]->getCgiIncludes().empty()) {
@@ -436,8 +422,6 @@ void ConfigParsing::printConfig() const {
                 std::vector<std::string> cgiIncludes = it->second[i]->getCgiIncludes();
                 for (size_t j = 0; j < cgiIncludes.size(); j++) {
                     logger(STDOUT_FILENO, DEBUG, cgiIncludes[j]);
-                    if (j < cgiIncludes.size() - 1)
-                        logger(STDOUT_FILENO, DEBUG, ", ");
                 }
             }
             if (!it->second[i]->getFastcgiPass().empty())
@@ -449,8 +433,6 @@ void ConfigParsing::printConfig() const {
                 std::vector<std::pair<std::string, std::string> > fastcgiParams = it->second[i]->getFastcgiParams();
                 for (size_t j = 0; j < fastcgiParams.size(); j++) {
                     logger(STDOUT_FILENO, DEBUG, fastcgiParams[j].first + "=" + fastcgiParams[j].second);
-                    if (j < fastcgiParams.size() - 1)
-                        logger(STDOUT_FILENO, DEBUG, ", ");
                 }
             }
             if (it->second[i]->getMaxBodySize() > 0)
@@ -460,8 +442,6 @@ void ConfigParsing::printConfig() const {
                 std::vector<std::string> methods = it->second[i]->getMethods();
                 for (size_t j = 0; j < methods.size(); j++) {
                     logger(STDOUT_FILENO, DEBUG, methods[j]);
-                    if (j < methods.size() - 1)
-                        logger(STDOUT_FILENO, DEBUG, ", ");
                 }
             }
             if (!it->second[i]->getUploadPath().empty())
