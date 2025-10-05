@@ -875,6 +875,53 @@ std::string Response::resolveFilePath(const std::string &uri) {
     }
     cleanUri = normalizePath(cleanUri);
 
+    // If there is a try_files for this location, evaluate them in order.
+    if (loc) {
+        const std::vector<std::string>& tryFiles = loc->getTryFiles();
+        if (!tryFiles.empty()) {
+            for (size_t i = 0; i < tryFiles.size(); ++i) {
+                std::string candidate = tryFiles[i];
+
+                // handle exact "=" return code -> skip here (handled later in readContent)
+                if (!candidate.empty() && candidate[0] == '=') {
+                    // leave it for readContent to handle status if needed
+                    continue;
+                }
+
+                // replace occurrences of $uri in the try_files token with cleanUri
+                size_t pos = 0;
+                std::string replaced;
+                while ((pos = candidate.find("$uri", pos)) != std::string::npos) {
+                    replaced += candidate.substr(0, pos);
+                    replaced += cleanUri;
+                    candidate = candidate.substr(pos + 4);
+                    pos = 0;
+                }
+                replaced += candidate;
+                candidate = replaced;
+
+                // If candidate starts with '/', it's absolute from root of filesystem - consider as-is
+                std::string fullPath;
+                if (!candidate.empty() && candidate[0] == '/') {
+                    // treat as absolute path under server root (root + candidate)
+                    fullPath = normalizePath(root + candidate);
+                } else {
+                    // otherwise consider it relative to root
+                    fullPath = normalizePath(root + candidate);
+                }
+
+                logger(STDOUT_FILENO, DEBUG, "try_files candidate: " + fullPath);
+
+                if (pathExists(fullPath) && (pathIsFile(fullPath) || pathIsDirectory(fullPath))) {
+                    // Found a candidate that exists -> return it
+                    return fullPath;
+                }
+            }
+            // no try_files matched -> fallthrough and return a default path that will generate 404
+        }
+    }
+
+    // Default behaviour (no try_files match): return root + cleanUri (exact mapping)
     std::string filePath;
     if (cleanUri == "/") {
         filePath = root;
@@ -890,6 +937,7 @@ std::string Response::resolveFilePath(const std::string &uri) {
     logger(STDOUT_FILENO, DEBUG, "Resolved file path: " + filePath + " for URI: " + uri);
     return filePath;
 }
+
 
 
 void Response::removeCookie(const std::string& name) {
