@@ -19,28 +19,47 @@ Response::~Response() {
 	delete response_header;
 }
 const char* Response::getResponse() {
-	e_message log_type = SUCCESS;
-	counter = 0;
+    e_message log_type = SUCCESS;
+    counter = 0;
 
-status_code = request.getStatusCode();
+    status_code = request.getStatusCode();
 
+    // VERIFICACIÓN DE MÉTODOS PERMITIDOS
+    LocationConfig* location = findLocation(request.getUri());
 
-if (status_code == 413) {
-    logger(STDOUT_FILENO, ERROR, "Payload too large detected, sending 413 response");
-    readContent(getPathStatusCode());
+    // Si no hay location específica, usar configuración del servidor
+    std::vector<std::string> allowed_methods;
+    if (location && !location->getMethods().empty()) {
+        allowed_methods = location->getMethods();
+    } else if (!config.getMethods().empty()) {
+        allowed_methods = config.getMethods();
+    }
 
-    response_header->setContentLength(send_body.size());
-    send_header = response_header->getHeader(status_code);
-    send_response = send_header;
-    if (request.getMethod() != "HEAD")
-        send_response.append(send_body);
-    return send_response.data();
-}
-	logger(STDOUT_FILENO, SUCCESS, "Host: " + config.getHost() +
-		" Request:  " + request.getMethod() + " " + request.getPath() + " " +
-		request.getHttpVersion() + " " + stringify(status_code));
+    // Verificar si el método está permitido (solo si hay métodos configurados)
+    if (!allowed_methods.empty()) {
+        std::string current_method = request.getMethod();
+        bool method_allowed = false;
 
-	LocationConfig* location = findLocation(request.getUri());
+        for (size_t i = 0; i < allowed_methods.size(); ++i) {
+            if (allowed_methods[i] == current_method) {
+                method_allowed = true;
+                break;
+            }
+        }
+
+        if (!method_allowed) {
+            status_code = 405; // Method Not Allowed
+            readContent(getPathStatusCode());
+            response_header->setContentLength(send_body.size());
+            send_header = response_header->getHeader(status_code);
+            send_response = send_header;
+            if (request.getMethod() != "HEAD")
+                send_response.append(send_body);
+            return send_response.data();
+        }
+    }
+
+    // ... resto del código existente
 	if (location && !location->getRedirects().empty()) {
 		std::vector<std::pair<std::string, std::string> > redirects = location->getRedirects();
 		if (!redirects.empty()) {
@@ -180,7 +199,7 @@ void Response::readContent(const std::string &path) {
 		status_code = 500;
 		send_body.clear();
 		send_body = MESSAGE_LOOP;
-		return;
+		return ;
 	}
 
 	if (status_code != 200 && status_code != 201 && status_code != 204) {
@@ -198,14 +217,14 @@ void Response::readContent(const std::string &path) {
 		} else {
 			send_body = ERROR_403_HTML;
 		}
-		return;
+		return ;
 	}
 
 	PathType result = checkPath(path);
 	if (result == PATH_NOT_EXISTS) {
 		status_code = 404;
 		readContent(getPathStatusCode());
-		return;
+		return ;
 	}
 	std::string request_uri = request.getUri();
 	LocationConfig* loc =  findLocation(request.getUri());
@@ -217,12 +236,12 @@ void Response::readContent(const std::string &path) {
 		status_code = 301;
 		response_header->setLocation(request.getUri() + "/");
 		send_body.clear();
-		return;
+		return ;
 	}
 
 	if (shouldExecuteAsCGI(path)) {
 		executeCGI(path);
-		return;
+		return ;
 	}
 	loc = findLocation(request.getUri());
 	bool indexFound = false;
@@ -236,7 +255,7 @@ void Response::readContent(const std::string &path) {
 				status_code = 403;
 				readContent(getPathStatusCode());
 				logger(STDOUT_FILENO, ERROR, "Cannot open file: " + path);
-				return;
+				return ;
 			}
 			buffer << file.rdbuf();
 			send_body.clear();
@@ -324,7 +343,7 @@ void Response::readContent(const std::string &path) {
 			} else {
 				status_code = 520;
 				send_body.clear();
-				return;
+				return ;
 			}
 	}
 }
@@ -338,7 +357,7 @@ void Response::writeContent(const std::string &path, std::string content)
 
 	if (request.isMultipart() && !request.getUploadedFiles().empty()) {
 		handleFileUpload();
-		return;
+		return ;
 	}
 
 	std::ofstream	file;
@@ -355,7 +374,7 @@ void Response::writeContent(const std::string &path, std::string content)
 		{
 			status_code = 403;
 			readContent(getPathStatusCode());
-			return;
+			return ;
 		}
 		file << content;
 		file.close();
@@ -412,7 +431,7 @@ void Response::handleFileUpload() {
 			status_code = 500;
 			readContent(getPathStatusCode());
 			logger(STDOUT_FILENO, ERROR, "Cannot create upload directory: " + uploadDir);
-			return;
+			return ;
 		}
 	}
 
@@ -542,19 +561,19 @@ void Response::deleteContent(const std::string &path) {
 						logger(STDOUT_FILENO, ERROR, "File " + filename + " not found in upload directory: " + uploadDir);
 						status_code = 404;
 						send_body.clear();
-						return;
+						return ;
 					}
 				} else {
 					logger(STDOUT_FILENO, ERROR, "Cannot open upload directory: " + uploadDir);
 					status_code = 404;
 					send_body.clear();
-					return;
+					return ;
 				}
 			} else {
 				logger(STDOUT_FILENO, ERROR, "Upload directory not configured");
 				status_code = 500;
 				send_body.clear();
-				return;
+				return ;
 			}
 		}
 	}
@@ -582,7 +601,7 @@ void Response::ListDirectory(const std::string& path, const std::string& uri) {
 	if (!dir) {
 		status_code = 404;
 		readContent(getPathStatusCode());
-		return;
+		return ;
 	}
 
 	std::ostringstream listing;
