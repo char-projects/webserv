@@ -107,7 +107,7 @@
 ## PROOFS
 
 // Postear JSON
-curl -X POST --header 'Content-Type: application/json' -d '{"thing": 45}' localhost:8080/anything
+curl -X POST --header 'Content-Type: application/json' -d '{"thing": 45}' localhost:8080/upload
 
 // Borrar archivo
 curl -X DELETE localhost:8080/anything

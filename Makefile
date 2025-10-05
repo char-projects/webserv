@@ -13,7 +13,7 @@ NO_COLOR				=	\033[0m
 OBJ 					= 	$(SRC:.cpp=.o)
 OBJ_DIR					=	obj
 OBJ_FILES				=	$(addprefix $(OBJ_DIR)/, $(OBJ))
-DEBUG_MODE				=	true
+DEBUG_MODE				=	false
 
 CFLAGS					=	-g -fsanitize=address -Werror -Wextra -Wall -std=c++98
 

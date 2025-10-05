@@ -31,9 +31,6 @@ class ResponseHeader {
 		void				setLocation(std::string location);
 
 	private:
-		ResponseHeader & operator=(const ResponseHeader & src);
-		ResponseHeader(const ResponseHeader& obj);
-
 		std::string			header;
 		std::string			contentType;
 		ssize_t				contentLength;
@@ -41,6 +38,8 @@ class ResponseHeader {
 		std::string			server;
 		std::string			location;
 
+		ResponseHeader & operator=(const ResponseHeader & src);
+		ResponseHeader(const ResponseHeader& obj);
 		const std::string	setContent(size_t status_code);
 		void				setDate();
 };

@@ -44,12 +44,10 @@ const char *ContentTypes::getExtension(const char *type, int skip) {
 	return NULL;
 }
 
-
 std::string ContentTypes::getExtension(const std::string &type, int skip) {
 	const char *str = getExtension((char *) type.c_str(), skip);
 	return std::string(str);
 }
-
 
 int ContentTypes::strcmpi(const char *s1, const char *s2) {
 	int i;
@@ -61,10 +59,10 @@ int ContentTypes::strcmpi(const char *s1, const char *s2) {
 			break;
 	}
 
-	if (s1[i] == s2[i]) 
+	if (s1[i] == s2[i])
 		return 0;
 
-	if ((s1[i] | 32) < (s2[i] | 32)) 
+	if ((s1[i] | 32) < (s2[i] | 32))
 		return -1;
 
 	return 1;
@@ -419,5 +417,3 @@ ContentTypes::entry ContentTypes::types[347] = {
 		{"yml",                      "text/yaml"},
 		{"zip",                      "application/zip"},
 };
-
-

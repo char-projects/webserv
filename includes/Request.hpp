@@ -15,7 +15,6 @@ class Request {
 		std::map<std::string, std::string>	parameters;
 		std::map<std::string, std::string>	headers;
 		std::vector<std::string>	valid_methods;
-
 		std::string	method;
 		std::string path;
 		std::string	uri;
@@ -26,14 +25,12 @@ class Request {
 		std::string	recv_data;
 		const ServerConfig& config;
 		std::string filename;
-
 		bool headers_parsed;
         size_t content_length;
         size_t body_bytes_received;
 		bool isMultipartFormData;
 		std::string boundary;
 		std::map<std::string, std::string> uploadedFiles;
-
 		std::map<std::string, std::string> cookies;
 
 	public:
@@ -47,7 +44,6 @@ class Request {
 		size_t getBytesRecv() const;
 		void parseRecvData();
 		bool setSendData();
-
 		void setClientFd(int fd);
 		int getClientFd() const;
 		void setMethod(const std::string &method);
@@ -67,24 +63,18 @@ class Request {
 		std::map<std::string, std::string> getHeaders() const;
 		std::string getFilename() const;
 		void setFilename(const std::string &filename);
-
 		bool isMultipart() const;
 		std::string getBoundary() const;
 		std::map<std::string, std::string> getUploadedFiles() const;
 		void parseMultipartFormData();
 		void reset();
-
-
     	bool processReceivedData(const char* data, size_t bytes_read, bool& receiving_body, size_t& expected_body_size);
         bool areHeadersComplete() const;
         void parseHeaders();
         size_t getRemainingBodySize() const;
-
         std::map<std::string, std::string> getCookies() const;
         void parseCookies();
         std::string getCookie(const std::string& name) const;
-
-
         std::string getSessionId() const;
 		size_t getMaxBodySize() const;
 };

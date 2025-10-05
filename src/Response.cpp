@@ -18,16 +18,13 @@ Response::Response(const int client_fd, const Request& request, const ServerConf
 Response::~Response() {
 	delete response_header;
 }
+
 const char* Response::getResponse() {
     e_message log_type = SUCCESS;
     counter = 0;
-
     status_code = request.getStatusCode();
-
-    // VERIFICACIÓN DE MÉTODOS PERMITIDOS
     LocationConfig* location = findLocation(request.getUri());
 
-    // Si no hay location específica, usar configuración del servidor
     std::vector<std::string> allowed_methods;
     if (location && !location->getMethods().empty()) {
         allowed_methods = location->getMethods();
@@ -35,20 +32,17 @@ const char* Response::getResponse() {
         allowed_methods = config.getMethods();
     }
 
-    // Verificar si el método está permitido (solo si hay métodos configurados)
     if (!allowed_methods.empty()) {
         std::string current_method = request.getMethod();
         bool method_allowed = false;
-
         for (size_t i = 0; i < allowed_methods.size(); ++i) {
             if (allowed_methods[i] == current_method) {
                 method_allowed = true;
                 break;
             }
         }
-
         if (!method_allowed) {
-            status_code = 405; // Method Not Allowed
+            status_code = 405;
             readContent(getPathStatusCode());
             response_header->setContentLength(send_body.size());
             send_header = response_header->getHeader(status_code);
@@ -59,7 +53,6 @@ const char* Response::getResponse() {
         }
     }
 
-    // ... resto del código existente
 	if (location && !location->getRedirects().empty()) {
 		std::vector<std::pair<std::string, std::string> > redirects = location->getRedirects();
 		if (!redirects.empty()) {
@@ -94,12 +87,9 @@ const char* Response::getResponse() {
 		readContent(getPathStatusCode());
 	}
 
-
 	response_header->setContentLength(send_body.size());
 	response_header->setContentType(request.getPath());
 	send_header = response_header->getHeader(status_code);
-
-
 	std::string cookie_headers = buildCookieHeaders();
 	if (!cookie_headers.empty()) {
 		size_t headerEndPos = send_header.find("\r\n\r\n");
@@ -109,7 +99,6 @@ const char* Response::getResponse() {
 			logger(STDOUT_FILENO, DEBUG, "Cookies added to response: " + cookie_headers);
 		}
 	}
-
 
 	send_response.clear();
 	send_response.append(send_header);
@@ -126,73 +115,41 @@ const char* Response::getResponse() {
 
 	return send_response.data();
 }
+
 size_t Response::getSize() {
 	return (send_response.size());
 }
 
 const std::string Response::getPathStatusCode() {
-
 	std::string error_page_path;
 
 	error_page_path.clear();
 	switch (status_code) {
-		case 201:
-			error_page_path = "";
-			break;
-		case 204:
-			error_page_path = "";
-			break;
-		case 301:
-			error_page_path = "";
-			break;
-		case 307:
-			error_page_path = "";
-			break;
-		case 400:
-			error_page_path = ERROR_400_HTML;
-			break;
-		case 403:
-			error_page_path = ERROR_403_HTML;
-			break;
-		case 404:
-			error_page_path = ERROR_404_HTML;
-			break;
-		case 405:
-			error_page_path = ERROR_405_HTML;
-			break;
-		case 413:
-			error_page_path = ERROR_413_HTML;
-			break;
-		case 500:
-			error_page_path = ERROR_500_HTML;
-			break;
-		case 502:
-			error_page_path = ERROR_502_HTML;
-			break;
-		case 503:
-			error_page_path = ERROR_503_HTML;
-			break;
-		case 504:
-			error_page_path = ERROR_504_HTML;
-			break;
-		case 520:
-			error_page_path = "";
-			break;
-		default:
-			error_page_path = ERROR_500_HTML;
+		case 201: error_page_path = ""; break;
+		case 204: error_page_path = ""; break;
+		case 301: error_page_path = ""; break;
+		case 307: error_page_path = ""; break;
+		case 400: error_page_path = ERROR_400_HTML; break;
+		case 403: error_page_path = ERROR_403_HTML; break;
+		case 404: error_page_path = ERROR_404_HTML; break;
+		case 405: error_page_path = ERROR_405_HTML; break;
+		case 413: error_page_path = ERROR_413_HTML; break;
+		case 500: error_page_path = ERROR_500_HTML; break;
+		case 502: error_page_path = ERROR_502_HTML; break;
+		case 503: error_page_path = ERROR_503_HTML; break;
+		case 504: error_page_path = ERROR_504_HTML; break;
+		case 520: error_page_path = ""; break;
+		default: error_page_path = ERROR_500_HTML;
 	}
 
 	std::vector<std::pair<std::string, int> > pairs = config.getErrorPages();
 	for (std::vector<std::pair<std::string, int> >::const_iterator it = pairs.begin(); it != pairs.end(); ++it) {
-		if (it->second == static_cast<int>(status_code)) {
-			error_page_path = it->first;
+		if (it->second == static_cast<int>(status_code)) { error_page_path = it->first;
 			break;
 		}
 	}
-
 	return (error_page_path);
 }
-
 
 void Response::readContent(const std::string &path) {
 	if (++counter > 2) {
@@ -264,7 +221,6 @@ void Response::readContent(const std::string &path) {
 			break;
 
 		case PATH_IS_DIRECTORY:
-
 			if (path[path.size()-1] != '/') {
 				status_code = 301;
 				response_header->setLocation(request.getUri() + "/");
@@ -273,7 +229,6 @@ void Response::readContent(const std::string &path) {
 			}
 
 			if (!config.getIndexFiles().empty()) {
-
 				for (size_t i = 0; i < indexFiles.size(); ++i) {
 					index_file = path + indexFiles[i];
 					if (pathIsFile(index_file)) {
@@ -284,8 +239,6 @@ void Response::readContent(const std::string &path) {
 				}
 				if (indexFound) break;
 			}
-
-
 
 			if (loc && loc->getAutoIndex()) {
 				ListDirectory(path, request.getUri());
@@ -354,7 +307,6 @@ void Response::writeContent(const std::string &path, std::string content)
 		status_code = 400;
 		readContent(getPathStatusCode());
 	}
-
 	if (request.isMultipart() && !request.getUploadedFiles().empty()) {
 		handleFileUpload();
 		return ;
@@ -384,9 +336,6 @@ void Response::writeContent(const std::string &path, std::string content)
 }
 
 void Response::handleFileUpload() {
-
-
-
     const std::map<std::string, std::string>& uploadedFiles = request.getUploadedFiles();
     size_t total_upload_size = 0;
 
@@ -394,7 +343,6 @@ void Response::handleFileUpload() {
          it != uploadedFiles.end(); ++it) {
         total_upload_size += it->second.size();
     }
-
 
     LocationConfig* loc = findLocation(request.getUri());
     size_t max_upload_size = 0;
@@ -483,16 +431,12 @@ void Response::handleFileUpload() {
 
 void Response::deleteContent(const std::string &path) {
 	std::string targetPath = path;
-
-
 	std::string uri = request.getUri();
 	size_t queryPos = uri.find('?');
 
 	if (queryPos != std::string::npos) {
 		std::string queryString = uri.substr(queryPos + 1);
 		logger(STDOUT_FILENO, SUCCESS, "Query string: " + queryString);
-
-
 		std::string filename = "";
 		size_t filenamePos = queryString.find("filename=");
 		if (filenamePos != std::string::npos) {
@@ -526,8 +470,6 @@ void Response::deleteContent(const std::string &path) {
 			std::string pathStr = request.getPath();
 			std::string shortPath = pathStr.substr(pathStr.find('/'));
 			LocationConfig* loc = findLocation(shortPath + "/");
-
-
 			std::string uploadDir;
 			if (loc && !loc->getUploadPath().empty()) {
 				uploadDir = loc->getUploadPath();
@@ -538,7 +480,6 @@ void Response::deleteContent(const std::string &path) {
 			}
 
 			if (!uploadDir.empty()) {
-
 				DIR* dir = opendir(uploadDir.c_str());
 				if (dir) {
 					struct dirent* entry;
@@ -546,8 +487,6 @@ void Response::deleteContent(const std::string &path) {
 
 					while ((entry = readdir(dir)) != NULL) {
 						std::string entryName = entry->d_name;
-
-
 						if (entryName.find(filename) == 0) {
 							foundFile = uploadDir + "/" + entryName;
 							break;
@@ -578,7 +517,6 @@ void Response::deleteContent(const std::string &path) {
 		}
 	}
 
-
 	if (pathIsFile(targetPath)) {
 		if (remove(targetPath.c_str()) == 0) {
 			status_code = 204;
@@ -608,7 +546,6 @@ void Response::ListDirectory(const std::string& path, const std::string& uri) {
 	listing << "<html><head><title>Index of " << uri << "</title></head><body><h1>Index of " << uri << "</h1><hr><ul>";
 	struct dirent* entry;
 	if (uri != "/") {
-
 		std::string tmp = uri;
 		if (tmp.length() > 1 && tmp[tmp.length() - 1] == '/')
 			tmp.erase(tmp.length() - 1);
@@ -687,7 +624,6 @@ void Response::reset() {
 	bytes_send = 0;
 	counter = 0;
 }
-
 
 bool Response::shouldExecuteAsCGI(const std::string &path) {
     size_t dotPos = path.rfind('.');
@@ -786,11 +722,8 @@ void Response::executeCGI(const std::string &path) {
 		return;
 	}
 
-
 	std::string cgiOutput = cgi.getOutput();
 	std::string cgiHeaders = "";
-
-
 	size_t headerEnd = cgiOutput.find("\r\n\r\n");
 	if (headerEnd == std::string::npos) {
 
@@ -806,42 +739,32 @@ void Response::executeCGI(const std::string &path) {
 
 	logger(STDOUT_FILENO, DEBUG, "CGI Headers length: " + stringify(cgiHeaders.length()));
 	logger(STDOUT_FILENO, DEBUG, "CGI Body length: " + stringify(send_body.length()));
+	std::istringstream headerStream(cgiHeaders);
+	std::string line;
 
+	while (std::getline(headerStream, line)) {
+		if (!line.empty() && line[line.length()-1] == '\r')
+			line = line.substr(0, line.length()-1);
 
-		std::istringstream headerStream(cgiHeaders);
-		std::string line;
-
-		while (std::getline(headerStream, line)) {
-			if (!line.empty() && line[line.length()-1] == '\r')
-				line = line.substr(0, line.length()-1);
-
-
-			if (line.find("Set-Cookie:") == 0) {
-				std::string cookieValue = line.substr(11);
-				cookieValue = trim(cookieValue);
-
-
-				size_t eqPos = cookieValue.find('=');
-				if (eqPos != std::string::npos) {
-					std::string cookieName = cookieValue.substr(0, eqPos);
-					cookies[cookieName] = cookieValue;
-					logger(STDOUT_FILENO, DEBUG, "CGI Cookie captured: " + cookieName + " = " + cookieValue);
-				}
+		if (line.find("Set-Cookie:") == 0) {
+			std::string cookieValue = line.substr(11);
+			cookieValue = trim(cookieValue);
+			size_t eqPos = cookieValue.find('=');
+			if (eqPos != std::string::npos) {
+				std::string cookieName = cookieValue.substr(0, eqPos);
+				cookies[cookieName] = cookieValue;
+				logger(STDOUT_FILENO, DEBUG, "CGI Cookie captured: " + cookieName + " = " + cookieValue);
 			}
-
-			else if (line.find("Status:") == 0) {
-				std::string statusStr = line.substr(7);
-				statusStr = trim(statusStr);
-				status_code = static_cast<size_t>(std::atoi(statusStr.c_str()));
-			}
-
-			else if (line.find("Content-Type:") == 0) {
-				std::string contentType = line.substr(13);
-				contentType = trim(contentType);
-				response_header->setContentType(contentType);
-			}
+		} else if (line.find("Status:") == 0) {
+			std::string statusStr = line.substr(7);
+			statusStr = trim(statusStr);
+			status_code = static_cast<size_t>(std::atoi(statusStr.c_str()));
+		} else if (line.find("Content-Type:") == 0) {
+			std::string contentType = line.substr(13);
+			contentType = trim(contentType);
+			response_header->setContentType(contentType);
 		}
-
+	}
 
 	if (send_body.empty() && cgiHeaders.empty()) {
 		status_code = 500;
@@ -861,9 +784,7 @@ std::string Response::resolveFilePath(const std::string &uri) {
             root = "www";
         }
     }
-
     root = normalizePath(root);
-
     if (root != "/" && !root.empty() && root[root.length()-1] == '/') {
         root = root.substr(0, root.length()-1);
     }
@@ -874,21 +795,16 @@ std::string Response::resolveFilePath(const std::string &uri) {
         cleanUri = uri.substr(0, queryPos);
     }
     cleanUri = normalizePath(cleanUri);
-
-    // If there is a try_files for this location, evaluate them in order.
     if (loc) {
         const std::vector<std::string>& tryFiles = loc->getTryFiles();
         if (!tryFiles.empty()) {
             for (size_t i = 0; i < tryFiles.size(); ++i) {
                 std::string candidate = tryFiles[i];
 
-                // handle exact "=" return code -> skip here (handled later in readContent)
                 if (!candidate.empty() && candidate[0] == '=') {
-                    // leave it for readContent to handle status if needed
                     continue;
                 }
 
-                // replace occurrences of $uri in the try_files token with cleanUri
                 size_t pos = 0;
                 std::string replaced;
                 while ((pos = candidate.find("$uri", pos)) != std::string::npos) {
@@ -899,29 +815,23 @@ std::string Response::resolveFilePath(const std::string &uri) {
                 }
                 replaced += candidate;
                 candidate = replaced;
-
-                // If candidate starts with '/', it's absolute from root of filesystem - consider as-is
                 std::string fullPath;
                 if (!candidate.empty() && candidate[0] == '/') {
-                    // treat as absolute path under server root (root + candidate)
+
                     fullPath = normalizePath(root + candidate);
                 } else {
-                    // otherwise consider it relative to root
+
                     fullPath = normalizePath(root + candidate);
                 }
-
                 logger(STDOUT_FILENO, DEBUG, "try_files candidate: " + fullPath);
-
                 if (pathExists(fullPath) && (pathIsFile(fullPath) || pathIsDirectory(fullPath))) {
-                    // Found a candidate that exists -> return it
                     return fullPath;
                 }
             }
-            // no try_files matched -> fallthrough and return a default path that will generate 404
+
         }
     }
 
-    // Default behaviour (no try_files match): return root + cleanUri (exact mapping)
     std::string filePath;
     if (cleanUri == "/") {
         filePath = root;
@@ -933,12 +843,9 @@ std::string Response::resolveFilePath(const std::string &uri) {
     } else {
         filePath = normalizePath(root + cleanUri);
     }
-
     logger(STDOUT_FILENO, DEBUG, "Resolved file path: " + filePath + " for URI: " + uri);
     return filePath;
 }
-
-
 
 void Response::removeCookie(const std::string& name) {
 
@@ -948,34 +855,24 @@ void Response::removeCookie(const std::string& name) {
 void Response::setSessionCookie(const std::string& session_id) {
     setCookie("SESSIONID", session_id, 1800, "/");
 }
+
 std::string Response::buildCookieHeaders() {
 	std::string cookie_headers;
-	for (std::map<std::string, std::string>::const_iterator it = cookies.begin();
-		 it != cookies.end(); ++it) {
-
+	for (std::map<std::string, std::string>::const_iterator it = cookies.begin(); it != cookies.end(); ++it) {
 		cookie_headers += "Set-Cookie: " + it->second + "\r\n";
 		logger(STDOUT_FILENO, DEBUG, "Building cookie header: " + it->first);
 	}
 	return cookie_headers;
 }
 
-
-void Response::setCookie(const std::string& name, const std::string& value,
-						time_t max_age, const std::string& path) {
+void Response::setCookie(const std::string& name, const std::string& value, time_t max_age, const std::string& path) {
 	std::stringstream cookie;
 	cookie << name << "=" << value;
-
 	if (!path.empty())
 		cookie << "; Path=" << path;
-
 	if (max_age > 0)
 		cookie << "; Max-Age=" << max_age;
-
 	cookie << "; HttpOnly";
-
-
-
-
 	cookies[name] = cookie.str();
 	logger(STDOUT_FILENO, DEBUG, "Cookie set: " + name + " = " + value);
 }

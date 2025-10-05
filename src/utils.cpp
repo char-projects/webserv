@@ -42,7 +42,6 @@ std::string format_string(const std::string& format, const std::vector<std::stri
 		if (pos != std::string::npos)
 			result.replace(pos, 2, args[i]);
 	}
-
 	return (result);
 }
 

@@ -130,7 +130,6 @@ void Request::parseParameters(const std::string &param_str) {
 		end = param_str.find('&', start);
 	}
 
-
 	std::string param = param_str.substr(start);
 	size_t eq_pos = param.find('=');
 	if (eq_pos != std::string::npos) {
@@ -147,7 +146,6 @@ bool Request::setSendData() {
 }
 
 void Request::parseRecvData() {
-
     parameters.clear();
     headers.clear();
     body.clear();
@@ -162,8 +160,6 @@ void Request::parseRecvData() {
 
     std::istringstream request_stream(recv_data);
     std::string line;
-
-
     std::string method_local, uri_local, http_version_local;
     if (std::getline(request_stream, line)) {
         std::istringstream line_stream(line);
@@ -175,7 +171,6 @@ void Request::parseRecvData() {
         status_code = 400;
         return;
     }
-
 
     bool valid_method = false;
     for (size_t i = 0; i < valid_methods.size(); ++i) {
@@ -206,7 +201,6 @@ void Request::parseRecvData() {
 		uri = uri_local;
 	}
 
-
 	std::string serverRoot = config.getRoot();
 	if (serverRoot.empty())
 		serverRoot = "www";
@@ -229,7 +223,6 @@ void Request::parseRecvData() {
 	}
 	path = normalizePath(path);
 
-
     while (std::getline(request_stream, line) && line != "\r") {
         size_t colon_pos = line.find(':');
         if (colon_pos != std::string::npos) {
@@ -238,7 +231,6 @@ void Request::parseRecvData() {
             headers[header_name] = header_value;
         }
     }
-
 
     std::string body_content;
     while (std::getline(request_stream, line)) {
@@ -261,7 +253,7 @@ void Request::parseRecvData() {
 	logger(STDOUT_FILENO, DEBUG, "Content-Type: " + (headers.count("Content-Type") ? headers["Content-Type"] : "none"));
 	logger(STDOUT_FILENO, DEBUG, "Content-Length: " + (headers.count("Content-Length") ? headers["Content-Length"] : "none"));
 	logger(STDOUT_FILENO, DEBUG, "Body size: " + stringify(body.size()));
-	logger(STDOUT_FILENO, DEBUG, "Body:\t" + body);
+	// logger(STDOUT_FILENO, DEBUG, "Body:\t" + body);
 	logger(STDOUT_FILENO, DEBUG, "Headers:");
 	for (std::map<std::string, std::string>::iterator it = headers.begin(); it != headers.end(); ++it) {
 		logger(STDOUT_FILENO, DEBUG, "  " + it->first + ": " + it->second);
@@ -364,7 +356,6 @@ void Request::parseMultipartFormData() {
 	std::string fullBoundary = "--" + boundary;
 	logger(STDOUT_FILENO, DEBUG, "Full boundary: '" + fullBoundary + "'");
 	logger(STDOUT_FILENO, DEBUG, "Body size: " + stringify(body.size()));
-
 	size_t pos = 0;
 	int partCount = 0;
 
@@ -404,15 +395,10 @@ void Request::parseMultipartFormData() {
 				size_t nameStart = namePos + 6;
 				size_t nameEnd = partHeaders.find("\"", nameStart);
 				std::string fieldName = partHeaders.substr(nameStart, nameEnd - nameStart);
-
 				size_t filenameStart = filenamePos + 10;
 				size_t filenameEnd = partHeaders.find("\"", filenameStart);
 				std::string filename = partHeaders.substr(filenameStart, filenameEnd - filenameStart);
-
-
 				logger(STDOUT_FILENO, DEBUG, "Field name: " + fieldName + ", Original filename: " + filename);
-
-
 				size_t lastSlash = filename.find_last_of("/\\");
 				if (lastSlash != std::string::npos)
 					filename = filename.substr(lastSlash + 1);
@@ -427,7 +413,6 @@ void Request::parseMultipartFormData() {
 				logger(STDOUT_FILENO, DEBUG, "Sanitized filename: " + filename);
 				logger(STDOUT_FILENO, DEBUG, "File data size: " + stringify(partBody.size()));
 
-
 				bool hasNullBytes = false;
 				for (size_t i = 0; i < partBody.size() && i < 100; ++i) {
 					if (partBody[i] == 0) {
@@ -436,7 +421,6 @@ void Request::parseMultipartFormData() {
 					}
 				}
 				logger(STDOUT_FILENO, DEBUG, "File data contains null bytes: " + stringify(hasNullBytes));
-
 				uploadedFiles[filename] = partBody;
 				logger(STDOUT_FILENO, SUCCESS, "Uploaded file stored: " + filename + " size: " + stringify(partBody.size()));
 			} else {
@@ -457,10 +441,6 @@ bool Request::processReceivedData(const char* data, size_t bytes_read, bool& rec
         if (headers_end != std::string::npos) {
             parseHeaders();
             headers_parsed = true;
-
-
-
-
         }
     }
 
@@ -469,7 +449,6 @@ bool Request::processReceivedData(const char* data, size_t bytes_read, bool& rec
         return false;
     }
 
-
     size_t max_body_size = getMaxBodySize();
     size_t current_total_size = recv_data.size() + bytes_read;
 
@@ -477,8 +456,6 @@ bool Request::processReceivedData(const char* data, size_t bytes_read, bool& rec
         logger(STDOUT_FILENO, ERROR, "Request body too large during reception: " +
                stringify(current_total_size) + " > " + stringify(max_body_size));
         status_code = 413;
-
-
         if (recv_data.size() < max_body_size) {
             size_t bytes_to_keep = max_body_size - recv_data.size();
             recv_data.append(data, bytes_to_keep);
@@ -486,9 +463,7 @@ bool Request::processReceivedData(const char* data, size_t bytes_read, bool& rec
         return false;
     }
 
-
     recv_data.append(data, bytes_read);
-
 
     if (!headers_parsed) {
         size_t headers_end = recv_data.find("\r\n\r\n");
@@ -497,18 +472,13 @@ bool Request::processReceivedData(const char* data, size_t bytes_read, bool& rec
             parseHeaders();
             headers_parsed = true;
 
-
-            if (status_code == 413) {
+            if (status_code == 413)
                 return false;
-            }
-
 
 			if (content_length > 0) {
 				receiving_body = true;
 				expected_body_size = content_length;
 				logger(STDOUT_FILENO, DEBUG, "Expecting body of " + stringify(content_length) + " bytes");
-
-
 				size_t headers_size = recv_data.find("\r\n\r\n") + 4;
 				body_bytes_received = recv_data.size() - headers_size;
 
@@ -522,8 +492,6 @@ bool Request::processReceivedData(const char* data, size_t bytes_read, bool& rec
 					return true;
 				}
 			} else {
-
-
 				parseRecvData();
 				receiving_body = false;
 				expected_body_size = 0;
@@ -535,13 +503,10 @@ bool Request::processReceivedData(const char* data, size_t bytes_read, bool& rec
 		}
 	}
 
-
 	if (receiving_body) {
 		size_t headers_size = recv_data.find("\r\n\r\n") + 4;
 		body_bytes_received = recv_data.size() - headers_size;
-
 		logger(STDOUT_FILENO, INFO, "Body progress: " + stringify(body_bytes_received) + "/" + stringify(content_length) + " bytes");
-
 		if (body_bytes_received >= content_length) {
 			logger(STDOUT_FILENO, INFO, "Body complete, parsing full request...");
 			parseRecvData();
@@ -558,13 +523,10 @@ bool Request::processReceivedData(const char* data, size_t bytes_read, bool& rec
 
 void Request::parseHeaders() {
     logger(STDOUT_FILENO, DEBUG, "=== PARSING HEADERS ===");
-
     size_t headers_end = recv_data.find("\r\n\r\n");
     std::string headers_str = recv_data.substr(0, headers_end);
-
     std::istringstream headers_stream(headers_str);
     std::string line;
-
 
     if (std::getline(headers_stream, line)) {
         std::istringstream line_stream(line);
@@ -577,7 +539,6 @@ void Request::parseHeaders() {
         }
     }
 
-
     while (std::getline(headers_stream, line) && line != "\r") {
         size_t colon_pos = line.find(':');
         if (colon_pos != std::string::npos) {
@@ -589,8 +550,6 @@ void Request::parseHeaders() {
             if (header_name == "Content-Length") {
                 content_length = atoi(header_value.c_str());
                 logger(STDOUT_FILENO, DEBUG, "Found Content-Length: " + stringify(content_length));
-
-
                 size_t max_body_size = getMaxBodySize();
                 if (max_body_size > 0 && content_length > max_body_size) {
                     logger(STDOUT_FILENO, ERROR, "Content-Length exceeds limit at header parsing: " +
@@ -602,9 +561,7 @@ void Request::parseHeaders() {
         }
     }
 
-
     if (headers.count("Transfer-Encoding") && headers["Transfer-Encoding"] == "chunked") {
-
         logger(STDOUT_FILENO, DEBUG, "Chunked transfer encoding detected");
     }
 }
@@ -642,7 +599,6 @@ void Request::reset() {
 
 void Request::parseCookies() {
     cookies.clear();
-
     std::map<std::string, std::string>::const_iterator it = headers.find("Cookie");
     if (it != headers.end()) {
         std::string cookie_header = it->second;

@@ -57,7 +57,7 @@ bool Cgi::execute() {
         if (lastSlash != std::string::npos) {
             std::string dir = scriptPath.substr(0, lastSlash);
             if (chdir(dir.c_str()) != 0) {
-                logger(STDOUT_FILENO, ERROR, "Failed to change directory for CGI: " + dir + " - " + strerror(errno));
+                logger(STDOUT_FILENO, ERROR, "Failed to change directory for CGI: " + dir);
                 exit(1);
             }
         }

@@ -20,7 +20,6 @@ class LocationConfig {
         std::vector<std::pair<std::string, std::string> > fastcgiParams;
         bool cgiEnabled;
 	    std::vector<std::pair<std::string, std::string> > cgi;
-
         size_t maxBodySize;
         std::vector<std::string> methods;
         std::string root;
@@ -54,14 +53,12 @@ class LocationConfig {
         void setCgiEnabled(bool enabled);
         std::vector<std::pair<std::string, std::string> > getCgi() const;
         void addCgi(const std::string &extension, const std::string &interpreter);
-
         size_t getMaxBodySize() const;
         void setMaxBodySize(const size_t &maxBodySize);
         std::vector<std::string> getMethods() const;
         void addMethods(const std::vector<std::string> &methods);
         std::string getRoot() const;
         void setRoot(const std::string &root);
-
 		std::string getUploadPath() const;
 		void setUploadPath(const std::string &uploadPath);
 };

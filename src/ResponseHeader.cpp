@@ -71,7 +71,6 @@ const std::string ResponseHeader::setContent(size_t status_code) {
 			content.append(format_string(RESPONSE_500, args));
 			break;
 	}
-
 	return (content);
 }
 

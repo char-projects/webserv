@@ -13,7 +13,7 @@
 #define LOG_FILE			3
 #define DEFAULT_ERROR_LOG	"./logger.log"
 #ifndef DEBUG_MODE
-	#define DEBUG_MODE false
+	#define DEBUG_MODE		false
 #endif
 
 enum PathType {

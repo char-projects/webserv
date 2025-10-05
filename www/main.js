@@ -46,6 +46,19 @@ class CosmicWebsite {
         this.animateParticles();
     }
 
+	// Utility method for random colors
+	getRandomColor() {
+		const colors = ['#00ffff', '#ff00ff', '#ffff00', '#ff6b6b', '#4ecdc4', '#45b7d1'];
+		return colors[Math.floor(Math.random() * colors.length)];
+	}
+
+	// Generate random name for form submission
+	generateRandomName() {
+		const timestamp = Date.now();
+		const randomString = Math.random().toString(36).substring(2, 8);
+		return `contact_${timestamp}_${randomString}`;
+	}
+
     resizeCanvas() {
         this.canvas.width = window.innerWidth;
         this.canvas.height = window.innerHeight;
@@ -169,44 +182,86 @@ class CosmicWebsite {
         });
     }
 
-    // Form Animations
-    setupFormAnimations() {
-        const form = document.querySelector('.contact-form');
-        if (!form) return;
 
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
+	// Form Animations
+	setupFormAnimations() {
+		const form = document.querySelector('.contact-form');
+		if (!form) return;
 
-            const submitBtn = form.querySelector('.submit-btn');
-            const originalText = submitBtn.textContent;
+		form.addEventListener('submit', (e) => {
+			e.preventDefault();
 
-            submitBtn.textContent = 'SENDING MESSAGE...';
-            submitBtn.style.background = 'linear-gradient(45deg, #ff6b6b, #4ecdc4)';
+			const submitBtn = form.querySelector('.submit-btn');
+			const originalText = submitBtn.textContent;
 
-            // Simulate form submission
-            setTimeout(() => {
-                submitBtn.textContent = 'MESSAGE SENT!';
-                submitBtn.style.background = 'linear-gradient(45deg, #51cf66, #339af0)';
+			const name = document.getElementById('name').value;
+			const email = document.getElementById('email').value;
+			const message = document.getElementById('message').value;
 
-                setTimeout(() => {
-                    submitBtn.textContent = originalText;
-                    submitBtn.style.background = 'linear-gradient(45deg, #00ffff, #ff00ff)';
-                    form.reset();
-                }, 2000);
-            }, 1500);
-        });
+			const formData = {
+				name: name,
+				email: email,
+				message: message,
+				timestamp: new Date().toISOString()
+			};
 
-        // Input focus effects
-        document.querySelectorAll('.form-group input, .form-group textarea').forEach(input => {
-            input.addEventListener('focus', () => {
-                input.parentElement.style.transform = 'scale(1.02)';
-            });
+			const jsonData = JSON.stringify(formData, null, 2);
+			const jsonBlob = new Blob([jsonData], { type: 'application/json' });
+			const uploadData = new FormData();
+			const randomName = this.generateRandomName() + '.json';
+			uploadData.append('file', jsonBlob, randomName);
 
-            input.addEventListener('blur', () => {
-                input.parentElement.style.transform = 'scale(1)';
-            });
-        });
-    }
+			submitBtn.textContent = 'SENDING MESSAGE...';
+			submitBtn.style.background = 'linear-gradient(45deg, #ff6b6b, #4ecdc4)';
+
+
+			fetch('/upload', {
+				method: 'POST',
+				body: uploadData,
+				headers: {
+					'Accept': 'application/json'
+				}
+			})
+			.then(response => response.json())
+			.then(result => {
+				submitBtn.textContent = 'MESSAGE SENT!';
+				submitBtn.style.background = 'linear-gradient(45deg, #51cf66, #339af0)';
+
+
+				setTimeout(() => {
+					submitBtn.textContent = originalText;
+					submitBtn.style.background = 'linear-gradient(45deg, #00ffff, #ff00ff)';
+					form.reset();
+				}, 2000);
+			})
+			.catch(error => {
+				submitBtn.textContent = 'ERROR - TRY AGAIN';
+				submitBtn.style.background = 'linear-gradient(45deg, #ff6b6b, #ff4757)';
+
+				setTimeout(() => {
+					submitBtn.textContent = originalText;
+					submitBtn.style.background = 'linear-gradient(45deg, #00ffff, #ff00ff)';
+				}, 2000);
+			});
+		});
+
+		// Input focus effects
+		document.querySelectorAll('.form-group input, .form-group textarea').forEach(input => {
+			input.addEventListener('focus', () => {
+				input.parentElement.style.transform = 'scale(1.02)';
+			});
+
+			input.addEventListener('blur', () => {
+				input.parentElement.style.transform = 'scale(1)';
+			});
+		});
+	}
+
+	generateRandomName() {
+		const timestamp = Date.now();
+		const randomString = Math.random().toString(36).substring(2, 8);
+		return `contact_${timestamp}_${randomString}`;
+	}
 
     // Tilt Effect
     setupTiltEffect() {
