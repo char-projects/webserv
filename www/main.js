@@ -11,7 +11,6 @@ class CosmicWebsite {
     }
 
     init() {
-        // Wait for DOM to load
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => this.setup());
         } else {
@@ -32,7 +31,6 @@ class CosmicWebsite {
         this.setupGlitchEffect();
     }
 
-    // Particle System
     setupParticleSystem() {
         this.canvas = document.getElementById('particle-canvas');
         if (!this.canvas) return;
@@ -46,13 +44,11 @@ class CosmicWebsite {
         this.animateParticles();
     }
 
-	// Utility method for random colors
 	getRandomColor() {
 		const colors = ['#00ffff', '#ff00ff', '#ffff00', '#ff6b6b', '#4ecdc4', '#45b7d1'];
 		return colors[Math.floor(Math.random() * colors.length)];
 	}
 
-	// Generate random name for form submission
 	generateRandomName() {
 		const timestamp = Date.now();
 		const randomString = Math.random().toString(36).substring(2, 8);
@@ -83,22 +79,18 @@ class CosmicWebsite {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
         this.particles.forEach((particle, index) => {
-            // Update position
             particle.x += particle.vx;
             particle.y += particle.vy;
 
-            // Bounce off edges
             if (particle.x < 0 || particle.x > this.canvas.width) particle.vx *= -1;
             if (particle.y < 0 || particle.y > this.canvas.height) particle.vy *= -1;
 
-            // Draw particle
             this.ctx.globalAlpha = particle.opacity;
             this.ctx.fillStyle = particle.color;
             this.ctx.beginPath();
             this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
             this.ctx.fill();
 
-            // Draw connections to nearby particles
             for (let j = index + 1; j < this.particles.length; j++) {
                 const otherParticle = this.particles[j];
                 const distance = Math.sqrt(
@@ -121,7 +113,6 @@ class CosmicWebsite {
         requestAnimationFrame(() => this.animateParticles());
     }
 
-    // Custom Cursor
     setupCustomCursor() {
         const cursor = document.querySelector('.cursor-trail');
         if (!cursor) return;
@@ -134,14 +125,12 @@ class CosmicWebsite {
             cursor.style.top = e.clientY + 'px';
         });
 
-        // Hide cursor on mobile
         if ('ontouchstart' in window) {
             cursor.style.display = 'none';
             document.body.style.cursor = 'auto';
         }
     }
 
-    // Smooth Scrolling
     setupSmoothScrolling() {
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', (e) => {
@@ -156,7 +145,6 @@ class CosmicWebsite {
             });
         });
 
-        // Parallax scrolling effect
         window.addEventListener('scroll', () => {
             const scrolled = window.pageYOffset;
             const stars = document.querySelector('.stars');
@@ -166,7 +154,6 @@ class CosmicWebsite {
         });
     }
 
-    // Navigation Effects
     setupNavigationEffects() {
         const navbar = document.querySelector('.navbar');
         if (!navbar) return;
@@ -182,8 +169,6 @@ class CosmicWebsite {
         });
     }
 
-
-	// Form Animations
 	setupFormAnimations() {
 		const form = document.querySelector('.contact-form');
 		if (!form) return;
@@ -245,7 +230,6 @@ class CosmicWebsite {
 			});
 		});
 
-		// Input focus effects
 		document.querySelectorAll('.form-group input, .form-group textarea').forEach(input => {
 			input.addEventListener('focus', () => {
 				input.parentElement.style.transform = 'scale(1.02)';
@@ -263,7 +247,6 @@ class CosmicWebsite {
 		return `contact_${timestamp}_${randomString}`;
 	}
 
-    // Tilt Effect
     setupTiltEffect() {
         const tiltElements = document.querySelectorAll('[data-tilt]');
 
@@ -288,7 +271,6 @@ class CosmicWebsite {
         });
     }
 
-    // Intersection Observer for animations
     setupIntersectionObserver() {
         const observerOptions = {
             threshold: 0.1,
@@ -300,8 +282,6 @@ class CosmicWebsite {
                 if (entry.isIntersecting) {
                     entry.target.style.opacity = '1';
                     entry.target.style.transform = 'translateY(0)';
-
-                    // Stagger animation for grid items
                     if (entry.target.classList.contains('about-card') ||
                         entry.target.classList.contains('feature-card')) {
                         const siblings = [...entry.target.parentElement.children];
@@ -311,8 +291,6 @@ class CosmicWebsite {
                 }
             });
         }, observerOptions);
-
-        // Observe elements
         document.querySelectorAll('.about-card, .feature-card, .section-title').forEach(el => {
             el.style.opacity = '0';
             el.style.transform = 'translateY(30px)';
@@ -321,7 +299,6 @@ class CosmicWebsite {
         });
     }
 
-    // Audio Control (placeholder)
     setupAudioControl() {
         const audioToggle = document.getElementById('audio-toggle');
         if (!audioToggle) return;
@@ -329,8 +306,6 @@ class CosmicWebsite {
         audioToggle.addEventListener('click', () => {
             this.isAudioPlaying = !this.isAudioPlaying;
             audioToggle.textContent = this.isAudioPlaying ? '🔇' : '🔊';
-
-            // Add visual feedback
             audioToggle.style.transform = 'scale(0.9)';
             setTimeout(() => {
                 audioToggle.style.transform = 'scale(1)';
@@ -338,7 +313,6 @@ class CosmicWebsite {
         });
     }
 
-    // Responsive Navigation
     setupResponsiveNavigation() {
         const hamburger = document.querySelector('.hamburger');
         const navMenu = document.querySelector('.nav-menu');
@@ -349,7 +323,6 @@ class CosmicWebsite {
             navMenu.classList.toggle('active');
             hamburger.classList.toggle('active');
 
-            // Animate hamburger lines
             const spans = hamburger.querySelectorAll('span');
             if (hamburger.classList.contains('active')) {
                 spans[0].style.transform = 'rotate(-45deg) translate(-5px, 6px)';
@@ -362,7 +335,6 @@ class CosmicWebsite {
             }
         });
 
-        // Close menu when clicking on links
         document.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', () => {
                 navMenu.classList.remove('active');
@@ -371,7 +343,6 @@ class CosmicWebsite {
         });
     }
 
-    // Enhanced Glitch Effect
     setupGlitchEffect() {
         const glitchElement = document.querySelector('.glitch');
         if (!glitchElement) return;
@@ -393,8 +364,6 @@ class CosmicWebsite {
         };
 
         startGlitch();
-
-        // Enhanced glitch on hover
         glitchElement.addEventListener('mouseenter', () => {
             clearInterval(glitchInterval);
             let count = 0;
@@ -410,13 +379,11 @@ class CosmicWebsite {
         });
     }
 
-    // Utility method for random colors
     getRandomColor() {
         const colors = ['#00ffff', '#ff00ff', '#ffff00', '#ff6b6b', '#4ecdc4', '#45b7d1'];
         return colors[Math.floor(Math.random() * colors.length)];
     }
 
-    // Add floating elements effect
     createFloatingElements() {
         const floatingContainer = document.createElement('div');
         floatingContainer.className = 'floating-elements';
@@ -447,7 +414,6 @@ class CosmicWebsite {
             floatingContainer.appendChild(element);
         }
 
-        // Add CSS animation
         const style = document.createElement('style');
         style.textContent = `
             @keyframes float {
@@ -459,12 +425,9 @@ class CosmicWebsite {
     }
 }
 
-// Initialize the cosmic website
 const cosmicSite = new CosmicWebsite();
 
-// Add some extra interactive features
 document.addEventListener('DOMContentLoaded', () => {
-    // Typewriter effect for hero subtitle
     const subtitle = document.querySelector('.hero-subtitle');
     if (subtitle) {
         const text = subtitle.textContent;
@@ -480,7 +443,6 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(typeWriter, 2000);
     }
 
-    // Add click ripple effect to buttons
     document.querySelectorAll('button, .nav-link').forEach(button => {
         button.addEventListener('click', function(e) {
             const ripple = document.createElement('span');
@@ -510,7 +472,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Add upload button functionality
     const uploadButton = document.querySelector('.cta-button');
     if (uploadButton) {
         uploadButton.addEventListener('click', () => {
@@ -532,15 +493,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         'Accept': 'application/json'
                     }
                 }).then(response => response.json()).then(uploadedFiles => {
-                    // alert('Upload successful!');
-                    // Display uploaded files and a delete button for each file
                     const fileList = document.getElementById('file-list');
                     if (fileList) {
                         uploadedFiles.forEach((fileInfo, index) => {
                             const li = document.createElement('li');
                             li.textContent = fileInfo.original;
 
-                            // Create delete button
                             const deleteButton = document.createElement('button');
                             deleteButton.textContent = 'Delete';
                             deleteButton.className = 'delete-button';
@@ -552,7 +510,6 @@ document.addEventListener('DOMContentLoaded', () => {
                                 }).then(response => {
                                     if (response.ok) {
                                         li.remove();
-                                        //alert('File deleted successfully!');
                                     } else {
                                         alert('Delete failed.');
                                     }
@@ -564,8 +521,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             li.appendChild(deleteButton);
                             li.className = 'file-item';
                             fileList.appendChild(li);
-
-                            // Animate new file entry
                             setTimeout(() => {
                                 li.classList.add('show');
                             }, 100 * index);
@@ -578,7 +533,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Add ripple animation CSS
     const rippleStyle = document.createElement('style');
     rippleStyle.textContent = `
         @keyframes ripple {
@@ -590,5 +544,3 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
     document.head.appendChild(rippleStyle);
 });
-
-console.log('🚀 Cosmic Web Experience loaded successfully!');

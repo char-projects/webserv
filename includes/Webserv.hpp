@@ -16,7 +16,7 @@
 // socket non-blocking
 #include <fcntl.h>
 #include <iomanip>
-// Wervserv
+
 #include "Request.hpp"
 #include "Response.hpp"
 #include "ResponseHeader.hpp"
@@ -29,7 +29,7 @@
 #define UPLOADS				"www/upload"
 
 #ifndef MSG_PEEK
-	#define MSG_PEEK 0x02
+#define MSG_PEEK 0x02
 #endif
 
 class Request;
@@ -60,7 +60,6 @@ struct ClientState {
 };
 
 class Webserv {
-
 	public:
 		Webserv(ConfigParsing& config);
 		~Webserv();
@@ -83,7 +82,6 @@ class Webserv {
 
 		Webserv();
 		Webserv(const Webserv &obj);
-		Webserv &operator=(const Webserv &obj);
 
 		int			initializeSelect(fd_set &read_fds, fd_set &write_fds);
 		void		handleConnections(fd_set &read_fds);

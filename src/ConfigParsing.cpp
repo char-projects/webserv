@@ -88,7 +88,7 @@ std::vector<std::string> ConfigParsing::tokenize(const std::string &filename, co
             logger(STDOUT_FILENO, ERROR, "Error: Missing semicolon or brace in line: " + line);
             continue;
         } else if (!line.empty() && line[line.length() - 1] == ';') {
-            line = line.substr(0, line.length() - 1); // remove the semicolon
+            line = line.substr(0, line.length() - 1);
         }
         size_t pos = 0;
         while (pos < line.length()) {
@@ -110,14 +110,12 @@ std::vector<std::string> ConfigParsing::tokenize(const std::string &filename, co
     return tokens;
 }
 
-// Also check for unknown directives, paths, ...
-
 void ConfigParsing::parse(std::vector<std::string> &tokens) {
     size_t i = 0;
     while (i < tokens.size()) {
         if (tokens[i] == "server" && i + 1 < tokens.size() && tokens[i + 1] == "{") {
             ServerConfig* server = new ServerConfig();
-            i += 2; // Skip "server" and "{"
+            i += 2;
             while (i < tokens.size() && tokens[i] != "}") {
                 if (tokens[i] == "listen") {
                     size_t j = i + 1;
@@ -235,13 +233,7 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                             } else if (tokens[i] == "try_files") {
                                 i++;
                                 while (i < tokens.size() && tokens[i] != "}") {
-                                    // if (tokens[i].find("=") != std::string::npos) {
-                                    //     std::string codeStr = tokens[i].substr(1);
-                                    //     int code = atoi(codeStr.c_str());
-                                    //     logger(STDOUT_FILENO, DEBUG, "Return error code " + code + " if not found");
-                                    // } else {
-                                        location->addTryFile(tokens[i]);
-                                    // }
+                                    location->addTryFile(tokens[i]);
                                     i++;
                                 }
                             } else if (tokens[i] == "client_max_body_size") {

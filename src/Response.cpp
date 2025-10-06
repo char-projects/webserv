@@ -347,11 +347,10 @@ void Response::handleFileUpload() {
     LocationConfig* loc = findLocation(request.getUri());
     size_t max_upload_size = 0;
 
-    if (loc && loc->getMaxBodySize() > 0) {
+    if (loc && loc->getMaxBodySize() > 0)
         max_upload_size = loc->getMaxBodySize();
-    } else {
+    else
         max_upload_size = config.getMaxBodySize();
-    }
 
     if (max_upload_size > 0 && total_upload_size > max_upload_size) {
         status_code = 413;
@@ -365,13 +364,12 @@ void Response::handleFileUpload() {
 	loc = findLocation(shortPath + "/");
 	std::string uploadDir;
 
-	if (loc && !loc->getUploadPath().empty()) {
+	if (loc && !loc->getUploadPath().empty())
 		uploadDir = loc->getUploadPath();
-	} else if (loc && !loc->getRoot().empty()) {
+	else if (loc && !loc->getRoot().empty())
 		uploadDir = loc->getRoot();
-	} else {
+	else
 		uploadDir = UPLOADS;
-	}
 
 	if (!pathIsDirectory(uploadDir)) {
 		errno = 0;
@@ -442,9 +440,8 @@ void Response::deleteContent(const std::string &path) {
 		if (filenamePos != std::string::npos) {
 			size_t valueStart = filenamePos + 9;
 			size_t valueEnd = queryString.find('&', valueStart);
-			if (valueEnd == std::string::npos) {
+			if (valueEnd == std::string::npos)
 				valueEnd = queryString.length();
-			}
 			filename = queryString.substr(valueStart, valueEnd - valueStart);
 
 			std::string decodedFilename = "";
@@ -471,13 +468,12 @@ void Response::deleteContent(const std::string &path) {
 			std::string shortPath = pathStr.substr(pathStr.find('/'));
 			LocationConfig* loc = findLocation(shortPath + "/");
 			std::string uploadDir;
-			if (loc && !loc->getUploadPath().empty()) {
+			if (loc && !loc->getUploadPath().empty())
 				uploadDir = loc->getUploadPath();
-			} else if (loc && !loc->getRoot().empty()) {
+			else if (loc && !loc->getRoot().empty())
 				uploadDir = loc->getRoot();
-			} else {
+			else
 				uploadDir = "www/uploads";
-			}
 
 			if (!uploadDir.empty()) {
 				DIR* dir = opendir(uploadDir.c_str());

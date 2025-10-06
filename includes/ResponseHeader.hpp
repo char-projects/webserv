@@ -20,7 +20,6 @@
 #define RESPONSE_520 "HTTP/1.1 520 Web Server Returned an Unknown Error\r\nContent-Type: text/html\r\nContent-Length: {}\r\nConnection: close\r\n\r\n"
 
 class ResponseHeader {
-
 	public:
 		ResponseHeader();
 		~ResponseHeader();
@@ -38,7 +37,6 @@ class ResponseHeader {
 		std::string			server;
 		std::string			location;
 
-		ResponseHeader & operator=(const ResponseHeader & src);
 		ResponseHeader(const ResponseHeader& obj);
 		const std::string	setContent(size_t status_code);
 		void				setDate();

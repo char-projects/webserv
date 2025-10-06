@@ -253,12 +253,10 @@ void Request::parseRecvData() {
 	logger(STDOUT_FILENO, DEBUG, "Content-Type: " + (headers.count("Content-Type") ? headers["Content-Type"] : "none"));
 	logger(STDOUT_FILENO, DEBUG, "Content-Length: " + (headers.count("Content-Length") ? headers["Content-Length"] : "none"));
 	logger(STDOUT_FILENO, DEBUG, "Body size: " + stringify(body.size()));
-	// logger(STDOUT_FILENO, DEBUG, "Body:\t" + body);
 	logger(STDOUT_FILENO, DEBUG, "Headers:");
 	for (std::map<std::string, std::string>::iterator it = headers.begin(); it != headers.end(); ++it) {
 		logger(STDOUT_FILENO, DEBUG, "  " + it->first + ": " + it->second);
 	}
-
     status_code = 200;
 
 	if (headers.count("Transfer-Encoding") && headers["Transfer-Encoding"] == "chunked")
@@ -517,7 +515,6 @@ bool Request::processReceivedData(const char* data, size_t bytes_read, bool& rec
 			return true;
 		}
 	}
-
 	return false;
 }
 

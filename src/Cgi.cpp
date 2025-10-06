@@ -43,7 +43,7 @@ bool Cgi::execute() {
         logger(STDOUT_FILENO, ERROR, "Failed to fork process for CGI");
         return false;
     }
-    if (pid == 0) { // Child process
+    if (pid == 0) {
         close(inPipe[1]);
         close(outPipe[0]);
 
@@ -52,7 +52,6 @@ bool Cgi::execute() {
         close(inPipe[0]);
         close(outPipe[1]);
 
-        // Change to script directory
         size_t lastSlash = scriptPath.rfind('/');
         if (lastSlash != std::string::npos) {
             std::string dir = scriptPath.substr(0, lastSlash);
@@ -114,7 +113,7 @@ bool Cgi::execute() {
 		for (size_t i = 0; i < argv.size(); ++i)
 			free(argv[i]);
 		exit(1);
-    } else { // Parent process
+    } else {
         close(inPipe[0]);
         close(outPipe[1]);
         if (!postData.empty())
@@ -134,12 +133,11 @@ bool Cgi::execute() {
         time_t start_time = time(NULL);
 
         while (result == 0 && (time(NULL) - start_time) < 30) {
-            usleep(100000); // Sleep for 100ms
+            usleep(100000);
             result = waitpid(pid, &wstatus, WNOHANG);
         }
 
         if (result == 0) {
-            // Timeout - kill the process
             kill(pid, SIGTERM);
             usleep(100000);
             kill(pid, SIGKILL);
@@ -199,7 +197,7 @@ void Cgi::handleCookies(std::map<std::string, std::string> &headers) {
         if (endPos == std::string::npos)
             break;
         std::string cookie = output.substr(pos + 11, endPos - (pos + 11));
-        headers["Set-Cookie"] = cookie; // Overwrite previous cookies
+        headers["Set-Cookie"] = cookie;
         pos = endPos + 2;
     }
 }
@@ -213,7 +211,6 @@ void Cgi::setupEnvironment(const std::string &method, const std::string &uri,
                          size_t contentLength, const std::string &serverName,
                          const std::string &serverPort, const std::map<std::string, std::string> &headers) {
 
-    // Basic CGI environment variables
     env["REQUEST_METHOD"] = method;
     env["REQUEST_URI"] = uri;
     env["QUERY_STRING"] = queryString;
@@ -238,7 +235,6 @@ void Cgi::setupEnvironment(const std::string &method, const std::string &uri,
     else
         env["DOCUMENT_ROOT"] = ".";
 
-    // Path info (part of URI after script name)
     std::string scriptName = env["SCRIPT_NAME"];
     size_t scriptPos = uri.find(scriptName);
     if (scriptPos != std::string::npos) {
@@ -249,10 +245,8 @@ void Cgi::setupEnvironment(const std::string &method, const std::string &uri,
         }
     }
 
-    // HTTP headers as environment variables
     for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it) {
         std::string headerName = "HTTP_" + it->first;
-        // Convert to uppercase and replace - with _
         for (size_t i = 0; i < headerName.length(); ++i) {
             if (headerName[i] == '-')
                 headerName[i] = '_';
@@ -289,7 +283,6 @@ std::string Cgi::parseHeaders(std::string &body) {
         headers = output.substr(0, headerEnd);
         body = output.substr(headerEnd + 4);
     } else {
-        // No headers found, treat entire output as body
         headers = "";
         body = output;
     }

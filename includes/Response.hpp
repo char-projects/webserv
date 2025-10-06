@@ -29,7 +29,6 @@ class ResponseHeader;
 class LocationConfig;
 
 class Response {
-
 	public:
 		Response(const int client_fd, const Request& request, const ServerConfig& config, const std::vector<LocationConfig*>& locations);
 		~Response();
