@@ -316,7 +316,6 @@ void ConfigParsing::parse(std::vector<std::string> &tokens) {
                                     i++;
                                 }
                             } else {
-                                logger(STDOUT_FILENO, ERROR, "Unknown directive in location block: " + tokens[i]);
                                 i++;
                             }
                         }
