@@ -11,8 +11,8 @@
 - [✅] You cannot execve another web server.
 - [✅] Your server must remain non-blocking at all times and properly handle client disconnections when necessary.
 - [✅] It must be non-blocking and use only 1 poll() (or equivalent) for all the I/O operations between the clients and the server (listen included).
-- [👀] poll() (or equivalent) must monitor both reading and writing simultaneously.
-- [👀] You must never do a read or a write operation without going through poll() (or equivalent).
+- [✅] poll() (or equivalent) must monitor both reading and writing simultaneously.
+- [✅] You must never do a read or a write operation without going through poll() (or equivalent).
 - [✅] Checking the value of errno to adjust the server behaviour is strictly forbidden after performing a read or write operation.
 - [✅] A request to your server should never hang indefinitely.
 - [✅] Your server must be compatible with standard web browsers of your choice.
@@ -22,8 +22,8 @@
 - [✅] You must be able to serve a fully static website.
 - [✅] Clients must be able to upload files.
 - [✅] You need at least the GET, POST, and DELETE methods.
-- [👀] Stress test your server to ensure it remains available at all times.
-- [👀] Your server must be able to listen to multiple ports to deliver different content.
+- [✅] Stress test your server to ensure it remains available at all times.
+- [✅] Your server must be able to listen to multiple ports to deliver different content.
 - [✅] You are allowed to use fcntl() only with the following flags: F_SETFL, O_NONBLOCK, FD_CLOEXEC.
 
 ### Configuration File
@@ -58,8 +58,6 @@
 	curl -X POST --header 'Content-Type: application/json' -d '{"thing": 45}' localhost:8085/post_body
 	./ubuntu_tester http://localhost:8085
 
-## ERRORS
-
 ## TODO
 - [ ] Comprobar permisos a la hora de subir archivos
 - [ ] Cuando hay error al parsear el default.com continue; ????
@@ -71,7 +69,6 @@
 	- curl -X POST -H "Content-Type: plain/text" --data "BODY IS HERE write something shorter or longer than body limit"
 
 ## TO_CHECK
-- perform tests / stress
 - telnet, curl
 
 ---
